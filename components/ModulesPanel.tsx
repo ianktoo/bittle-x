@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Settings, RefreshCcw, Hand, Maximize2, Activity, BatteryCharging, PlayCircle, Eye, Aperture, User, CircleDot } from 'lucide-react';
+import { Settings, RefreshCcw, Hand, Maximize2, Activity, BatteryCharging, PlayCircle, Eye, Aperture, User, CircleDot, Layers } from 'lucide-react';
 import { OPEN_CAT_COMMANDS } from '../types';
 
 interface ModulesPanelProps {
   onCommand: (cmd: string) => void;
   disabled: boolean;
+  advancedGaits?: boolean;
+  onToggleAdvancedGaits?: () => void;
 }
 
-const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled }) => {
+const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advancedGaits, onToggleAdvancedGaits }) => {
   const [headPan, setHeadPan] = useState(0);
   const [headTilt, setHeadTilt] = useState(0);
   const [customCmd, setCustomCmd] = useState('');
@@ -35,7 +37,7 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled }) => {
     <div className="bg-fun-card/50 border border-slate-700 rounded-3xl p-5 backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-4 text-fun-primary font-bold uppercase tracking-wider text-sm border-b border-slate-700 pb-2">
         <Settings size={18} />
-        <span>Modules & Sensors</span>
+        <span>Modules & Config</span>
       </div>
 
       <div className="space-y-6">
@@ -53,16 +55,6 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled }) => {
           </button>
 
           <button 
-            onClick={() => onCommand(OPEN_CAT_COMMANDS.BATTERY)}
-            disabled={disabled}
-            className={btnClass}
-            title="Check Battery Voltage"
-          >
-            <BatteryCharging size={24} className="text-green-400" />
-            <span className="text-xs font-bold text-slate-300">Voltage</span>
-          </button>
-
-          <button 
             onClick={() => onCommand(OPEN_CAT_COMMANDS.GYRO_TOGGLE)}
             disabled={disabled}
             className={btnClass}
@@ -71,6 +63,20 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled }) => {
             <Activity size={24} className="text-blue-400" />
             <span className="text-xs font-bold text-slate-300">Gyro</span>
           </button>
+          
+          {onToggleAdvancedGaits && (
+            <button 
+                onClick={onToggleAdvancedGaits}
+                disabled={disabled}
+                className={`${btnClass} ${advancedGaits ? 'border-green-500/50 bg-green-900/20' : ''}`}
+                title="Use Bittle X specific diagonal gaits"
+            >
+                <Layers size={24} className={advancedGaits ? 'text-green-400' : 'text-slate-500'} />
+                <span className="text-xs font-bold text-slate-300">
+                    {advancedGaits ? 'X Gaits: ON' : 'X Gaits: OFF'}
+                </span>
+            </button>
+          )}
         </div>
 
         {/* AI Camera / Vision Section */}
@@ -110,9 +116,6 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled }) => {
                Ball (Green)
              </button>
            </div>
-           <p className="text-[10px] text-slate-500 italic text-center">
-              If working, robot head follows target. Check Terminal for data.
-           </p>
         </div>
 
         {/* Head / Gripper Control */}
@@ -155,10 +158,6 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled }) => {
            <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase">
              <Maximize2 size={14} /> Advanced
            </div>
-           <p className="text-[10px] text-slate-500 leading-tight">
-             Connect Gesture, IR, or Touch sensors via standard headers. 
-             Use raw commands to interface.
-           </p>
            
            <div className="flex gap-2">
              <input 

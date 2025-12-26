@@ -23,14 +23,21 @@ export interface RobotSkill {
 export const OPEN_CAT_COMMANDS = {
   // Movements
   WALK: 'kwk',
-  WALK_LEFT: 'kwkL',   // Forward Left
-  WALK_RIGHT: 'kwkR',  // Forward Right
+  WALK_LEFT: 'kturnL',   // Safe default (Spin Left)
+  WALK_RIGHT: 'kturnR',  // Safe default (Spin Right)
+  
+  // Advanced Bittle X Gaits (True Diagonals)
+  WALK_LEFT_X: 'kwkL',
+  WALK_RIGHT_X: 'kwkR',
+  BACK_LEFT_X: 'kbkL',
+  BACK_RIGHT_X: 'kbkR',
   
   CRAWL: 'kcr',
+  TROT: 'ktr',
   
   BACK: 'kbk',
-  BACK_LEFT: 'kbkL',   // Backward Left
-  BACK_RIGHT: 'kbkR',  // Backward Right
+  BACK_LEFT: 'kturnL',   
+  BACK_RIGHT: 'kturnR',  
 
   LEFT: 'kturnL',
   RIGHT: 'kturnR',

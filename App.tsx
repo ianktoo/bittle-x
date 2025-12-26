@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen } from 'lucide-react';
+import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen, AlertTriangle } from 'lucide-react';
 import { bluetoothService } from './services/bluetoothService';
 import { serialService } from './services/serialService';
 import { wifiService } from './services/wifiService';
@@ -23,6 +23,8 @@ const App: React.FC = () => {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [activeCmd, setActiveCmd] = useState<string | null>(null);
+  const [batteryVoltage, setBatteryVoltage] = useState<number | null>(null);
+  const [useAdvancedGaits, setUseAdvancedGaits] = useState(false); // Toggle for Bittle X commands
   
   // WiFi State
   const [showWifiInput, setShowWifiInput] = useState(false);
@@ -33,6 +35,8 @@ const App: React.FC = () => {
   const lastCommandTime = useRef<number>(0);
   const lastGamepadCmd = useRef<string | null>(null); // Track last sent gamepad command
   const requestRef = useRef<number>();
+  const batteryIntervalRef = useRef<number | null>(null);
+  const lastBatteryWarningTime = useRef<number>(0);
 
   // --- Toast Logic ---
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'info') => {
@@ -57,9 +61,54 @@ const App: React.FC = () => {
     }]);
   }, []);
 
+  // --- Data Handling ---
+  const handleDataReceived = useCallback((data: string) => {
+    const trimmed = data.trim();
+    if (!trimmed) return;
+    
+    // Log it
+    console.log(`%c[RX]`, 'color: #a78bfa', trimmed);
+    // Avoid spamming logs with empty chunks
+    setLogs(prev => [...prev, {
+      id: Math.random().toString(36).substring(7),
+      timestamp: Date.now(),
+      type: 'RX',
+      message: trimmed
+    }]);
+
+    // Parse Battery Voltage (Format: v7.4 or similar)
+    // The robot returns 'v' followed by number when 'v' command is sent.
+    // Sometimes it might just contain the number line if verbose.
+    // Petoi often replies "v7.4" or just "7.4" in some modes
+    let volStr = '';
+    if (trimmed.toLowerCase().startsWith('v')) {
+      volStr = trimmed.substring(1);
+    } else if (/^\d+\.\d+$/.test(trimmed)) {
+       // Sometimes just the number comes back if 'v' was echoed separately
+       volStr = trimmed;
+    }
+
+    if (volStr) {
+      const volts = parseFloat(volStr);
+      if (!isNaN(volts)) {
+        setBatteryVoltage(volts);
+        
+        // Warning Logic (Debounced 30s)
+        const now = Date.now();
+        if (volts < 6.8 && (now - lastBatteryWarningTime.current > 30000)) {
+             addToast(`Low Battery: ${volts}V! Servos may disable.`, 'error');
+             lastBatteryWarningTime.current = now;
+        }
+      }
+    }
+  }, [addToast]);
+
   // --- Command Logic ---
   const sendCommand = useCallback(async (cmd: string) => {
-    console.log(`%c[CMD] Sending: ${cmd}`, 'color: #FACC15; font-weight: bold; background: #222; padding: 2px 4px; border-radius: 2px;');
+    // Only log significant commands
+    if (cmd !== 'v') {
+        console.log(`%c[CMD] Sending: ${cmd}`, 'color: #FACC15; font-weight: bold; background: #222; padding: 2px 4px; border-radius: 2px;');
+    }
 
     if (connectionState !== ConnectionState.CONNECTED) {
       addToast('Not connected to robot', 'error');
@@ -74,7 +123,11 @@ const App: React.FC = () => {
       } else if (connectionType === 'WIFI') {
         await wifiService.sendCommand(cmd);
       }
-      addLog('TX', cmd);
+      
+      // Log TX
+      if (cmd !== 'v') {
+         addLog('TX', cmd);
+      }
     } catch (error) {
       console.error('[CMD] Error sending:', error);
       addLog('ERROR', 'Send failed');
@@ -95,8 +148,6 @@ const App: React.FC = () => {
     if (connectionState === ConnectionState.CONNECTED) {
       console.warn('EMERGENCY STOP TRIGGERED');
       try {
-        // Send directly to bypass any queues if we had them, 
-        // though here we reuse sendCommand for simplicity
         if (connectionType === 'BLUETOOTH') await bluetoothService.sendCommand(OPEN_CAT_COMMANDS.STOP);
         else if (connectionType === 'USB') await serialService.sendCommand(OPEN_CAT_COMMANDS.STOP);
         else if (connectionType === 'WIFI') await wifiService.sendCommand(OPEN_CAT_COMMANDS.STOP);
@@ -121,12 +172,10 @@ const App: React.FC = () => {
   };
 
   const executeSequence = useCallback(async (commands: string[]) => {
-    // Cancel previous sequence if running
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     
-    // Start new sequence controller
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const signal = controller.signal;
@@ -143,7 +192,6 @@ const App: React.FC = () => {
           await wait(ms, signal);
         } else {
           await sendCommand(cmd);
-          // Pause between actions to let robot finish animation
           await wait(800, signal);
         }
       }
@@ -163,7 +211,6 @@ const App: React.FC = () => {
 
   // --- Gamepad Logic ---
   const handleGamepadInput = useCallback(() => {
-    // If viewing docs, don't send commands
     if (view === 'DOCS') return;
 
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -180,12 +227,10 @@ const App: React.FC = () => {
       addToast('Gamepad Connected 🎮', 'success');
     }
 
-    // Process Input
     const now = Date.now();
-    const DEADZONE = 0.25; // Slight Increase
+    const DEADZONE = 0.25;
     let cmd = '';
 
-    // Inputs
     const axisX = gp.axes[0]; // -1 Left, 1 Right
     const axisY = gp.axes[1]; // -1 Up, 1 Down
     
@@ -195,16 +240,17 @@ const App: React.FC = () => {
     const isRight = axisX > DEADZONE || gp.buttons[15].pressed;
 
     // Logic: Check diagonals first, then cardinals
-    if (isUp && isLeft) cmd = OPEN_CAT_COMMANDS.WALK_LEFT;
-    else if (isUp && isRight) cmd = OPEN_CAT_COMMANDS.WALK_RIGHT;
-    else if (isDown && isLeft) cmd = OPEN_CAT_COMMANDS.BACK_LEFT;
-    else if (isDown && isRight) cmd = OPEN_CAT_COMMANDS.BACK_RIGHT;
+    // Bittle X Support: Use kwkL/kwkR if advanced mode is on, else safe turns
+    if (isUp && isLeft) cmd = useAdvancedGaits ? OPEN_CAT_COMMANDS.WALK_LEFT_X : OPEN_CAT_COMMANDS.WALK_LEFT;
+    else if (isUp && isRight) cmd = useAdvancedGaits ? OPEN_CAT_COMMANDS.WALK_RIGHT_X : OPEN_CAT_COMMANDS.WALK_RIGHT;
+    else if (isDown && isLeft) cmd = useAdvancedGaits ? OPEN_CAT_COMMANDS.BACK_LEFT_X : OPEN_CAT_COMMANDS.BACK_LEFT;
+    else if (isDown && isRight) cmd = useAdvancedGaits ? OPEN_CAT_COMMANDS.BACK_RIGHT_X : OPEN_CAT_COMMANDS.BACK_RIGHT;
     else if (isUp) cmd = OPEN_CAT_COMMANDS.WALK;
     else if (isDown) cmd = OPEN_CAT_COMMANDS.BACK;
     else if (isLeft) cmd = OPEN_CAT_COMMANDS.LEFT;
     else if (isRight) cmd = OPEN_CAT_COMMANDS.RIGHT;
     
-    // Actions (Buttons) - Only if no movement
+    // Actions
     if (!cmd) {
         if (gp.buttons[0].pressed) cmd = OPEN_CAT_COMMANDS.STOP; // A
         else if (gp.buttons[1].pressed) cmd = OPEN_CAT_COMMANDS.SIT; // B
@@ -213,7 +259,6 @@ const App: React.FC = () => {
         else if (gp.buttons[4].pressed) cmd = OPEN_CAT_COMMANDS.PUSH_UP; // LB
         else if (gp.buttons[5].pressed) cmd = OPEN_CAT_COMMANDS.STRETCH; // RB
         
-        // Select/Back for Emergency Stop
         if (gp.buttons[8].pressed || gp.buttons[9].pressed) {
              if (now - lastCommandTime.current > 1000) {
                  handleEmergencyStop();
@@ -223,24 +268,21 @@ const App: React.FC = () => {
         }
     }
 
-    // Sync UI State
     if (cmd !== activeCmd) {
       setActiveCmd(cmd);
     }
 
-    // Command Transmission Strategy
-    // For movement, we ONLY send on change (Edge Trigger) to avoid resetting the gait cycle which causes stutter.
     if (cmd) {
         if (cmd !== lastGamepadCmd.current) {
             sendCommand(cmd);
             lastGamepadCmd.current = cmd;
         }
     } else {
-        // No input detected (Stick Neutral)
-        // If we were previously moving, send STOP command once
         const movementCommands = [
             OPEN_CAT_COMMANDS.WALK, OPEN_CAT_COMMANDS.WALK_LEFT, OPEN_CAT_COMMANDS.WALK_RIGHT,
+            OPEN_CAT_COMMANDS.WALK_LEFT_X, OPEN_CAT_COMMANDS.WALK_RIGHT_X,
             OPEN_CAT_COMMANDS.BACK, OPEN_CAT_COMMANDS.BACK_LEFT, OPEN_CAT_COMMANDS.BACK_RIGHT,
+            OPEN_CAT_COMMANDS.BACK_LEFT_X, OPEN_CAT_COMMANDS.BACK_RIGHT_X,
             OPEN_CAT_COMMANDS.LEFT, OPEN_CAT_COMMANDS.RIGHT,
             OPEN_CAT_COMMANDS.CRAWL
         ];
@@ -250,11 +292,10 @@ const App: React.FC = () => {
             addLog('INFO', 'Gamepad: Auto-Stop');
             lastGamepadCmd.current = null;
         } else {
-            // Clear other commands so they can be re-triggered
             lastGamepadCmd.current = null;
         }
     }
-  }, [gamepadConnected, sendCommand, addLog, addToast, handleEmergencyStop, activeCmd, view]);
+  }, [gamepadConnected, sendCommand, addLog, addToast, handleEmergencyStop, activeCmd, view, useAdvancedGaits]);
 
   useEffect(() => {
     const tick = () => {
@@ -269,6 +310,19 @@ const App: React.FC = () => {
 
   // --- Connection Handlers ---
 
+  // Helper to start battery polling
+  const startBatteryPolling = useCallback(() => {
+    // Poll immediately
+    sendCommand(OPEN_CAT_COMMANDS.BATTERY);
+    
+    // Then every 20 seconds
+    if (batteryIntervalRef.current) clearInterval(batteryIntervalRef.current);
+    // Use window.setInterval to ensure correct type in browser
+    batteryIntervalRef.current = window.setInterval(() => {
+      sendCommand(OPEN_CAT_COMMANDS.BATTERY);
+    }, 20000);
+  }, [sendCommand]);
+
   const handleConnectBluetooth = async () => {
     if (!(navigator as any).bluetooth) {
       addToast("Web Bluetooth not supported", 'error');
@@ -282,21 +336,21 @@ const App: React.FC = () => {
       setConnectionState(ConnectionState.CONNECTED);
       addToast('Connected via Bluetooth', 'success');
       
-      // Initialize with Stop command to clear any weird states
+      // Init with Stop & Battery Check
       setTimeout(() => {
           bluetoothService.sendCommand(OPEN_CAT_COMMANDS.STOP).catch(console.error);
+          startBatteryPolling();
       }, 500);
 
       bluetoothService.setOnDisconnect(() => {
         setConnectionState(ConnectionState.DISCONNECTED);
         setConnectionType(null);
+        setBatteryVoltage(null);
+        if (batteryIntervalRef.current) clearInterval(batteryIntervalRef.current);
         addToast('Bluetooth Disconnected', 'info');
       });
 
-      bluetoothService.setOnDataReceived((data) => {
-        console.log('%c[RX-BLE]', 'color: #a78bfa', data.trim());
-        addLog('RX', data.trim());
-      });
+      bluetoothService.setOnDataReceived(handleDataReceived);
       
     } catch (error) {
       console.error(error);
@@ -320,21 +374,20 @@ const App: React.FC = () => {
       setConnectionState(ConnectionState.CONNECTED);
       addToast('Connected via USB', 'success');
       
-      // Initialize with Stop command
       setTimeout(() => {
           serialService.sendCommand(OPEN_CAT_COMMANDS.STOP).catch(console.error);
+          startBatteryPolling();
       }, 500);
 
       serialService.setOnDisconnect(() => {
         setConnectionState(ConnectionState.DISCONNECTED);
         setConnectionType(null);
+        setBatteryVoltage(null);
+        if (batteryIntervalRef.current) clearInterval(batteryIntervalRef.current);
         addToast('USB Disconnected', 'info');
       });
 
-      serialService.setOnDataReceived((data) => {
-        console.log('%c[RX-USB]', 'color: #a78bfa', data.trim());
-        addLog('RX', data.trim());
-      });
+      serialService.setOnDataReceived(handleDataReceived);
 
     } catch (error) {
       setConnectionState(ConnectionState.ERROR);
@@ -357,9 +410,15 @@ const App: React.FC = () => {
       setShowWifiInput(false);
       addToast('Connected via WiFi', 'success');
       
+      // WiFi doesn't support easy bi-directional polling usually, but we try
+      setTimeout(() => {
+         wifiService.sendCommand(OPEN_CAT_COMMANDS.STOP).catch(console.error);
+      }, 500);
+
       wifiService.setOnDisconnect(() => {
         setConnectionState(ConnectionState.DISCONNECTED);
         setConnectionType(null);
+        setBatteryVoltage(null);
         addToast('WiFi Disconnected', 'info');
       });
 
@@ -372,6 +431,7 @@ const App: React.FC = () => {
 
   const handleDisconnect = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
+    if (batteryIntervalRef.current) clearInterval(batteryIntervalRef.current);
     
     if (connectionType === 'BLUETOOTH') await bluetoothService.disconnect();
     else if (connectionType === 'USB') await serialService.disconnect();
@@ -379,6 +439,7 @@ const App: React.FC = () => {
     
     setConnectionState(ConnectionState.DISCONNECTED);
     setConnectionType(null);
+    setBatteryVoltage(null);
     addToast('Disconnected', 'info');
   };
 
@@ -414,7 +475,7 @@ const App: React.FC = () => {
               <h1 className="text-3xl font-extrabold tracking-tight text-white">
                 Bittle <span className="text-fun-secondary">Explorer</span>
               </h1>
-              <p className="text-sm text-slate-400 font-bold">Robot Control Center</p>
+              <p className="text-sm text-slate-400 font-bold">BiBoard v1.0 Edition</p>
             </div>
           </div>
 
@@ -429,10 +490,25 @@ const App: React.FC = () => {
 
             {connectionState === ConnectionState.CONNECTED ? (
                <div className="flex items-center gap-4">
-                  <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-900/50 rounded-full border border-slate-700">
-                      <Battery size={20} className="text-fun-success" />
-                      <span className="font-mono font-bold text-white">Online</span>
-                      <span className="ml-2 text-xs text-slate-500 bg-black/30 px-2 py-0.5 rounded">{connectionType}</span>
+                  <div className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border ${
+                      batteryVoltage !== null && batteryVoltage < 6.8 
+                        ? 'bg-red-900/50 border-red-500 text-red-200 animate-pulse' 
+                        : 'bg-slate-900/50 border-slate-700'
+                  }`}>
+                      {batteryVoltage !== null && batteryVoltage < 6.8 ? (
+                         <AlertTriangle size={20} />
+                      ) : (
+                         <Battery size={20} className={batteryVoltage !== null ? "text-fun-success" : "text-slate-500"} />
+                      )}
+                      
+                      <div className="flex flex-col leading-none">
+                         <span className="font-mono font-bold text-white text-sm">
+                            {batteryVoltage !== null ? `${batteryVoltage.toFixed(1)}V` : 'Online'}
+                         </span>
+                         {batteryVoltage === null && (
+                             <span className="text-[10px] text-slate-500">{connectionType}</span>
+                         )}
+                      </div>
                   </div>
                   <button
                     onClick={handleDisconnect}
@@ -541,6 +617,8 @@ const App: React.FC = () => {
              <ModulesPanel 
                 onCommand={sendCommand}
                 disabled={connectionState !== ConnectionState.CONNECTED}
+                advancedGaits={useAdvancedGaits}
+                onToggleAdvancedGaits={() => setUseAdvancedGaits(!useAdvancedGaits)}
              />
           </div>
 
