@@ -1,0 +1,9 @@
+{
+  "name": "Bittle X Commander",
+  "description": "A futuristic web controller for the Petoi Bittle X robot dog using Web Bluetooth and Gemini AI for natural language instruction.",
+  "requestFramePermissions": [
+    "microphone",
+    "bluetooth",
+    "serial"
+  ]
+}
