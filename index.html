@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
@@ -34,10 +35,18 @@
     </script>
     <style>
       body {
+        transition: background-color 0.3s ease, color 0.3s ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html:not(.dark) body {
+        background-color: #f8fafc; /* Slate 50 */
+        background-image: radial-gradient(circle at 50% 0%, rgba(250, 204, 21, 0.1) 0%, transparent 40%);
+        color: #0f172a; /* Slate 900 */
+      }
+      html.dark body {
         background-color: #000000;
         background-image: radial-gradient(circle at 50% 0%, rgba(250, 204, 21, 0.15) 0%, transparent 40%);
         color: #f1f5f9;
-        -webkit-tap-highlight-color: transparent;
       }
       /* Custom Scrollbar */
       ::-webkit-scrollbar {
@@ -45,15 +54,20 @@
         height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #18181b; 
+        background: transparent; 
         border-radius: 4px;
       }
-      ::-webkit-scrollbar-thumb {
-        background: #3f3f46; 
-        border-radius: 4px;
+      html.dark ::-webkit-scrollbar-track {
+        background: #18181b;
+      }
+      html:not(.dark) ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+      }
+      html.dark ::-webkit-scrollbar-thumb {
+        background: #3f3f46;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #52525b; 
+        background: #64748b; 
       }
     </style>
   <script type="importmap">

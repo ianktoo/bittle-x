@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen, AlertTriangle } from 'lucide-react';
+import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen, AlertTriangle, Sun, Moon } from 'lucide-react';
 import { bluetoothService } from './services/bluetoothService';
 import { serialService } from './services/serialService';
 import { wifiService } from './services/wifiService';
@@ -24,25 +24,43 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [activeCmd, setActiveCmd] = useState<string | null>(null);
   const [batteryVoltage, setBatteryVoltage] = useState<number | null>(null);
-  const [useAdvancedGaits, setUseAdvancedGaits] = useState(false); // Toggle for Bittle X commands
+  const [useAdvancedGaits, setUseAdvancedGaits] = useState(false);
   
-  // WiFi State
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('theme');
+        return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+        root.classList.add('dark');
+    } else {
+        root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+  
   const [showWifiInput, setShowWifiInput] = useState(false);
   const [wifiIp, setWifiIp] = useState('');
 
-  // Execution Control
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCommandTime = useRef<number>(0);
-  const lastGamepadCmd = useRef<string | null>(null); // Track last sent gamepad command
+  const lastGamepadCmd = useRef<string | null>(null); 
   const requestRef = useRef<number>();
   const batteryIntervalRef = useRef<number | null>(null);
   const lastBatteryWarningTime = useRef<number>(0);
 
-  // --- Toast Logic ---
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'info') => {
     const id = Math.random().toString(36).substring(7);
     setToasts(prev => [...prev, { id, message, type }]);
-    // Auto dismiss
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
@@ -61,14 +79,10 @@ const App: React.FC = () => {
     }]);
   }, []);
 
-  // --- Data Handling ---
   const handleDataReceived = useCallback((data: string) => {
     const trimmed = data.trim();
     if (!trimmed) return;
     
-    // Log it
-    console.log(`%c[RX]`, 'color: #a78bfa', trimmed);
-    // Avoid spamming logs with empty chunks
     setLogs(prev => [...prev, {
       id: Math.random().toString(36).substring(7),
       timestamp: Date.now(),
@@ -76,15 +90,10 @@ const App: React.FC = () => {
       message: trimmed
     }]);
 
-    // Parse Battery Voltage (Format: v7.4 or similar)
-    // The robot returns 'v' followed by number when 'v' command is sent.
-    // Sometimes it might just contain the number line if verbose.
-    // Petoi often replies "v7.4" or just "7.4" in some modes
     let volStr = '';
     if (trimmed.toLowerCase().startsWith('v')) {
       volStr = trimmed.substring(1);
     } else if (/^\d+\.\d+$/.test(trimmed)) {
-       // Sometimes just the number comes back if 'v' was echoed separately
        volStr = trimmed;
     }
 
@@ -92,8 +101,6 @@ const App: React.FC = () => {
       const volts = parseFloat(volStr);
       if (!isNaN(volts)) {
         setBatteryVoltage(volts);
-        
-        // Warning Logic (Debounced 30s)
         const now = Date.now();
         if (volts < 6.8 && (now - lastBatteryWarningTime.current > 30000)) {
              addToast(`Low Battery: ${volts}V! Servos may disable.`, 'error');
@@ -103,13 +110,7 @@ const App: React.FC = () => {
     }
   }, [addToast]);
 
-  // --- Command Logic ---
   const sendCommand = useCallback(async (cmd: string) => {
-    // Only log significant commands
-    if (cmd !== 'v') {
-        console.log(`%c[CMD] Sending: ${cmd}`, 'color: #FACC15; font-weight: bold; background: #222; padding: 2px 4px; border-radius: 2px;');
-    }
-
     if (connectionState !== ConnectionState.CONNECTED) {
       addToast('Not connected to robot', 'error');
       return;
@@ -124,7 +125,6 @@ const App: React.FC = () => {
         await wifiService.sendCommand(cmd);
       }
       
-      // Log TX
       if (cmd !== 'v') {
          addLog('TX', cmd);
       }
@@ -135,22 +135,18 @@ const App: React.FC = () => {
     }
   }, [connectionState, connectionType, addLog, addToast]);
 
-  // --- Emergency Stop ---
   const handleEmergencyStop = useCallback(async () => {
-    // 1. Abort any running AI sequences
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       addLog('INFO', 'Sequence Aborted');
     }
 
-    // 2. Send Stop Command immediately
     if (connectionState === ConnectionState.CONNECTED) {
-      console.warn('EMERGENCY STOP TRIGGERED');
       try {
-        if (connectionType === 'BLUETOOTH') await bluetoothService.sendCommand(OPEN_CAT_COMMANDS.STOP);
-        else if (connectionType === 'USB') await serialService.sendCommand(OPEN_CAT_COMMANDS.STOP);
-        else if (connectionType === 'WIFI') await wifiService.sendCommand(OPEN_CAT_COMMANDS.STOP);
+        if (connectionType === 'BLUETOOTH') await bluetoothService.sendCommand(OPEN_CAT_COMMANDS.BALANCE);
+        else if (connectionType === 'USB') await serialService.sendCommand(OPEN_CAT_COMMANDS.BALANCE);
+        else if (connectionType === 'WIFI') await wifiService.sendCommand(OPEN_CAT_COMMANDS.BALANCE);
         
         addLog('TX', 'STOP (Emergency)');
         addToast('EMERGENCY STOP!', 'error');
@@ -160,7 +156,6 @@ const App: React.FC = () => {
     }
   }, [connectionState, connectionType, addLog, addToast]);
 
-  // --- AI Sequence Execution with Abort Support ---
   const wait = (ms: number, signal: AbortSignal) => {
     return new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => resolve(), ms);
@@ -209,7 +204,6 @@ const App: React.FC = () => {
     }
   }, [sendCommand, addLog, addToast]);
 
-  // --- Gamepad Logic ---
   const handleGamepadInput = useCallback(() => {
     if (view === 'DOCS') return;
 
@@ -231,32 +225,30 @@ const App: React.FC = () => {
     const DEADZONE = 0.25;
     let cmd = '';
 
-    const axisX = gp.axes[0]; // -1 Left, 1 Right
-    const axisY = gp.axes[1]; // -1 Up, 1 Down
+    const axisX = gp.axes[0]; 
+    const axisY = gp.axes[1]; 
     
     const isUp = axisY < -DEADZONE || gp.buttons[12].pressed;
     const isDown = axisY > DEADZONE || gp.buttons[13].pressed;
     const isLeft = axisX < -DEADZONE || gp.buttons[14].pressed;
     const isRight = axisX > DEADZONE || gp.buttons[15].pressed;
 
-    // Logic: Check diagonals first, then cardinals
-    // Bittle X Support: Use kwkL/kwkR if advanced mode is on, else safe turns
-    if (isUp && isLeft) cmd = useAdvancedGaits ? OPEN_CAT_COMMANDS.WALK_LEFT_X : OPEN_CAT_COMMANDS.WALK_LEFT;
-    else if (isUp && isRight) cmd = useAdvancedGaits ? OPEN_CAT_COMMANDS.WALK_RIGHT_X : OPEN_CAT_COMMANDS.WALK_RIGHT;
-    else if (isDown && isLeft) cmd = useAdvancedGaits ? OPEN_CAT_COMMANDS.BACK_LEFT_X : OPEN_CAT_COMMANDS.BACK_LEFT;
-    else if (isDown && isRight) cmd = useAdvancedGaits ? OPEN_CAT_COMMANDS.BACK_RIGHT_X : OPEN_CAT_COMMANDS.BACK_RIGHT;
-    else if (isUp) cmd = OPEN_CAT_COMMANDS.WALK;
-    else if (isDown) cmd = OPEN_CAT_COMMANDS.BACK;
-    else if (isLeft) cmd = OPEN_CAT_COMMANDS.LEFT;
-    else if (isRight) cmd = OPEN_CAT_COMMANDS.RIGHT;
+    // Directional Mapping using official gaits
+    if (isUp && isLeft) cmd = useAdvancedGaits ? 'kwkL' : 'kwkF';
+    else if (isUp && isRight) cmd = useAdvancedGaits ? 'kwkR' : 'kwkF';
+    else if (isDown && isLeft) cmd = 'kbkL';
+    else if (isDown && isRight) cmd = 'kbkR';
+    else if (isUp) cmd = OPEN_CAT_COMMANDS.WALK_F;
+    else if (isDown) cmd = OPEN_CAT_COMMANDS.BACKWARD;
+    else if (isLeft) cmd = OPEN_CAT_COMMANDS.SPIN_L;
+    else if (isRight) cmd = 'kvtR'; // Mirror of kvtL
     
-    // Actions
     if (!cmd) {
-        if (gp.buttons[0].pressed) cmd = OPEN_CAT_COMMANDS.STOP; // A
+        if (gp.buttons[0].pressed) cmd = OPEN_CAT_COMMANDS.BALANCE; // A
         else if (gp.buttons[1].pressed) cmd = OPEN_CAT_COMMANDS.SIT; // B
         else if (gp.buttons[2].pressed) cmd = OPEN_CAT_COMMANDS.HI;  // X
         else if (gp.buttons[3].pressed) cmd = OPEN_CAT_COMMANDS.PEE; // Y
-        else if (gp.buttons[4].pressed) cmd = OPEN_CAT_COMMANDS.PUSH_UP; // LB
+        else if (gp.buttons[4].pressed) cmd = OPEN_CAT_COMMANDS.PUSH_UPS; // LB
         else if (gp.buttons[5].pressed) cmd = OPEN_CAT_COMMANDS.STRETCH; // RB
         
         if (gp.buttons[8].pressed || gp.buttons[9].pressed) {
@@ -279,16 +271,11 @@ const App: React.FC = () => {
         }
     } else {
         const movementCommands = [
-            OPEN_CAT_COMMANDS.WALK, OPEN_CAT_COMMANDS.WALK_LEFT, OPEN_CAT_COMMANDS.WALK_RIGHT,
-            OPEN_CAT_COMMANDS.WALK_LEFT_X, OPEN_CAT_COMMANDS.WALK_RIGHT_X,
-            OPEN_CAT_COMMANDS.BACK, OPEN_CAT_COMMANDS.BACK_LEFT, OPEN_CAT_COMMANDS.BACK_RIGHT,
-            OPEN_CAT_COMMANDS.BACK_LEFT_X, OPEN_CAT_COMMANDS.BACK_RIGHT_X,
-            OPEN_CAT_COMMANDS.LEFT, OPEN_CAT_COMMANDS.RIGHT,
-            OPEN_CAT_COMMANDS.CRAWL
+            'kwkF', 'kwkL', 'kwkR', 'kbk', 'kbkL', 'kbkR', 'kcrF', 'ktrF', 'kvtL', 'kvtR'
         ];
 
         if (lastGamepadCmd.current && movementCommands.includes(lastGamepadCmd.current)) {
-            sendCommand(OPEN_CAT_COMMANDS.STOP);
+            sendCommand(OPEN_CAT_COMMANDS.BALANCE);
             addLog('INFO', 'Gamepad: Auto-Stop');
             lastGamepadCmd.current = null;
         } else {
@@ -308,16 +295,9 @@ const App: React.FC = () => {
     };
   }, [handleGamepadInput]);
 
-  // --- Connection Handlers ---
-
-  // Helper to start battery polling
   const startBatteryPolling = useCallback(() => {
-    // Poll immediately
     sendCommand(OPEN_CAT_COMMANDS.BATTERY);
-    
-    // Then every 20 seconds
     if (batteryIntervalRef.current) clearInterval(batteryIntervalRef.current);
-    // Use window.setInterval to ensure correct type in browser
     batteryIntervalRef.current = window.setInterval(() => {
       sendCommand(OPEN_CAT_COMMANDS.BATTERY);
     }, 20000);
@@ -335,13 +315,10 @@ const App: React.FC = () => {
       setConnectionType('BLUETOOTH');
       setConnectionState(ConnectionState.CONNECTED);
       addToast('Connected via Bluetooth', 'success');
-      
-      // Init with Stop & Battery Check
       setTimeout(() => {
-          bluetoothService.sendCommand(OPEN_CAT_COMMANDS.STOP).catch(console.error);
+          bluetoothService.sendCommand(OPEN_CAT_COMMANDS.BALANCE).catch(() => {});
           startBatteryPolling();
       }, 500);
-
       bluetoothService.setOnDisconnect(() => {
         setConnectionState(ConnectionState.DISCONNECTED);
         setConnectionType(null);
@@ -349,15 +326,15 @@ const App: React.FC = () => {
         if (batteryIntervalRef.current) clearInterval(batteryIntervalRef.current);
         addToast('Bluetooth Disconnected', 'info');
       });
-
       bluetoothService.setOnDataReceived(handleDataReceived);
-      
-    } catch (error) {
-      console.error(error);
-      setConnectionState(ConnectionState.ERROR);
-      const msg = String(error).includes("cancelled") ? "Connection cancelled" : "Connection failed";
-      addToast(msg, 'error');
-      setTimeout(() => setConnectionState(ConnectionState.DISCONNECTED), 2000);
+    } catch (error: any) {
+      setConnectionState(ConnectionState.DISCONNECTED);
+      if (error.message === "Connection cancelled by user") {
+        addToast("Connection cancelled", 'info');
+      } else {
+        console.error(error);
+        addToast('Bluetooth connection failed', 'error');
+      }
     }
   };
 
@@ -373,12 +350,10 @@ const App: React.FC = () => {
       setConnectionType('USB');
       setConnectionState(ConnectionState.CONNECTED);
       addToast('Connected via USB', 'success');
-      
       setTimeout(() => {
-          serialService.sendCommand(OPEN_CAT_COMMANDS.STOP).catch(console.error);
+          serialService.sendCommand(OPEN_CAT_COMMANDS.BALANCE).catch(() => {});
           startBatteryPolling();
       }, 500);
-
       serialService.setOnDisconnect(() => {
         setConnectionState(ConnectionState.DISCONNECTED);
         setConnectionType(null);
@@ -386,9 +361,7 @@ const App: React.FC = () => {
         if (batteryIntervalRef.current) clearInterval(batteryIntervalRef.current);
         addToast('USB Disconnected', 'info');
       });
-
       serialService.setOnDataReceived(handleDataReceived);
-
     } catch (error) {
       setConnectionState(ConnectionState.ERROR);
       addToast('USB connection failed', 'error');
@@ -409,19 +382,15 @@ const App: React.FC = () => {
       setConnectionState(ConnectionState.CONNECTED);
       setShowWifiInput(false);
       addToast('Connected via WiFi', 'success');
-      
-      // WiFi doesn't support easy bi-directional polling usually, but we try
       setTimeout(() => {
-         wifiService.sendCommand(OPEN_CAT_COMMANDS.STOP).catch(console.error);
+         wifiService.sendCommand(OPEN_CAT_COMMANDS.BALANCE).catch(() => {});
       }, 500);
-
       wifiService.setOnDisconnect(() => {
         setConnectionState(ConnectionState.DISCONNECTED);
         setConnectionType(null);
         setBatteryVoltage(null);
         addToast('WiFi Disconnected', 'info');
       });
-
     } catch (error) {
       setConnectionState(ConnectionState.ERROR);
       addToast('WiFi connection failed', 'error');
@@ -432,27 +401,41 @@ const App: React.FC = () => {
   const handleDisconnect = async () => {
     if (abortControllerRef.current) abortControllerRef.current.abort();
     if (batteryIntervalRef.current) clearInterval(batteryIntervalRef.current);
-    
     if (connectionType === 'BLUETOOTH') await bluetoothService.disconnect();
     else if (connectionType === 'USB') await serialService.disconnect();
     else if (connectionType === 'WIFI') await wifiService.disconnect();
-    
     setConnectionState(ConnectionState.DISCONNECTED);
     setConnectionType(null);
     setBatteryVoltage(null);
     addToast('Disconnected', 'info');
   };
 
+  useEffect(() => {
+    const handleSerialDisconnectEvent = () => {
+      if (connectionType === 'USB') {
+        serialService.disconnect();
+      }
+    };
+
+    if ('serial' in navigator) {
+      (navigator as any).serial.addEventListener('disconnect', handleSerialDisconnectEvent);
+    }
+    return () => {
+      if ('serial' in navigator) {
+        (navigator as any).serial.removeEventListener('disconnect', handleSerialDisconnectEvent);
+      }
+    };
+  }, [connectionType]);
+
   if (view === 'DOCS') {
     return <Documentation onBack={() => setView('APP')} />;
   }
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 pb-20 font-sans selection:bg-fun-primary selection:text-white">
+    <div className="min-h-screen p-4 sm:p-6 pb-20 font-sans selection:bg-fun-primary selection:text-white transition-colors duration-300">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       
-      {/* Floating Emergency Stop Button */}
       {connectionState === ConnectionState.CONNECTED && (
         <button
             onClick={handleEmergencyStop}
@@ -465,24 +448,23 @@ const App: React.FC = () => {
       
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Header */}
-        <header className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-fun-card/80 backdrop-blur-md p-6 rounded-3xl border border-slate-700 shadow-2xl relative">
+        <header className="flex flex-col xl:flex-row items-center justify-between gap-6 bg-white dark:bg-fun-card/80 backdrop-blur-md p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl relative transition-all">
           <div className="flex items-center gap-4">
             <div className="bg-gradient-to-br from-fun-primary to-fun-accent p-3 rounded-2xl shadow-lg">
               <Rocket size={32} className="text-white animate-pulse" />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">
-                Bittle <span className="text-fun-secondary">Explorer</span>
+              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                Bittle <span className="text-yellow-500 dark:text-fun-secondary">Explorer</span>
               </h1>
-              <p className="text-sm text-slate-400 font-bold">BiBoard v1.0 Edition</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-bold">BiBoard v1.0 Edition</p>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap justify-center">
             
             {gamepadConnected && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 rounded-full border border-fun-primary/50 text-fun-primary animate-pulse">
+              <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-900/50 rounded-full border border-yellow-500/50 text-yellow-600 dark:text-fun-primary animate-pulse">
                 <Gamepad2 size={20} />
                 <span className="font-mono font-bold text-xs uppercase hidden sm:inline">Gamepad Active</span>
               </div>
@@ -490,19 +472,19 @@ const App: React.FC = () => {
 
             {connectionState === ConnectionState.CONNECTED ? (
                <div className="flex items-center gap-4">
-                  <div className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border ${
+                  <div className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border transition-colors ${
                       batteryVoltage !== null && batteryVoltage < 6.8 
-                        ? 'bg-red-900/50 border-red-500 text-red-200 animate-pulse' 
-                        : 'bg-slate-900/50 border-slate-700'
+                        ? 'bg-red-100 dark:bg-red-900/50 border-red-500 text-red-600 dark:text-red-200 animate-pulse' 
+                        : 'bg-slate-100 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700'
                   }`}>
                       {batteryVoltage !== null && batteryVoltage < 6.8 ? (
                          <AlertTriangle size={20} />
                       ) : (
-                         <Battery size={20} className={batteryVoltage !== null ? "text-fun-success" : "text-slate-500"} />
+                         <Battery size={20} className={batteryVoltage !== null ? "text-green-600 dark:text-fun-success" : "text-slate-400 dark:text-slate-500"} />
                       )}
                       
                       <div className="flex flex-col leading-none">
-                         <span className="font-mono font-bold text-white text-sm">
+                         <span className="font-mono font-bold text-slate-700 dark:text-white text-sm">
                             {batteryVoltage !== null ? `${batteryVoltage.toFixed(1)}V` : 'Online'}
                          </span>
                          {batteryVoltage === null && (
@@ -512,7 +494,7 @@ const App: React.FC = () => {
                   </div>
                   <button
                     onClick={handleDisconnect}
-                    className="flex items-center gap-2 px-6 py-3 bg-fun-card text-white font-bold rounded-xl hover:bg-zinc-700 transition-all border border-slate-600"
+                    className="flex items-center gap-2 px-6 py-3 bg-slate-200 dark:bg-fun-card text-slate-900 dark:text-white font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-zinc-700 transition-all border border-slate-300 dark:border-slate-600"
                   >
                     <WifiOff size={20} />
                     <span>Disconnect</span>
@@ -540,13 +522,13 @@ const App: React.FC = () => {
 
                 <div className="relative">
                   {showWifiInput ? (
-                    <div className="absolute top-full mt-2 right-0 bg-white p-3 rounded-xl shadow-xl z-50 flex gap-2 w-[240px] border-2 border-indigo-600">
+                    <div className="absolute top-full mt-2 right-0 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-xl z-50 flex gap-2 w-[240px] border-2 border-indigo-600">
                       <input 
                         type="text" 
                         value={wifiIp}
                         onChange={(e) => setWifiIp(e.target.value)}
                         placeholder="192.168.x.x"
-                        className="w-full text-black px-2 py-1 border border-slate-300 rounded font-mono text-sm"
+                        className="w-full text-black dark:text-white bg-slate-100 dark:bg-slate-900 px-2 py-1 border border-slate-300 dark:border-slate-600 rounded font-mono text-sm"
                         autoFocus
                       />
                       <button 
@@ -571,7 +553,7 @@ const App: React.FC = () => {
             
             <button 
               onClick={() => setView('DOCS')}
-              className="p-3 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full border border-slate-600 transition-all"
+              className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full border border-slate-300 dark:border-slate-600 transition-all"
               title="Open Documentation"
             >
               <BookOpen size={22} />
@@ -579,25 +561,32 @@ const App: React.FC = () => {
 
             <button 
               onClick={() => setIsHelpOpen(true)}
-              className="p-3 bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 rounded-full border border-slate-600 transition-all"
+              className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full border border-slate-300 dark:border-slate-600 transition-all"
               title="Quick Help"
             >
               <HelpCircle size={22} />
             </button>
+            
+            <button 
+              onClick={toggleTheme}
+              className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full border border-slate-300 dark:border-slate-600 transition-all"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
+            </button>
           </div>
         </header>
 
-        {/* Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-5 flex flex-col gap-6">
-             <div className="bg-fun-card/40 border border-slate-700 rounded-3xl p-6 flex flex-col items-center">
+             <div className="bg-white/60 dark:bg-fun-card/40 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center shadow-xl backdrop-blur-sm transition-all">
                 <div className="flex items-center justify-between w-full mb-4 px-2">
-                  <div className="flex items-center gap-2 text-fun-secondary font-bold uppercase tracking-widest text-sm">
+                  <div className="flex items-center gap-2 text-yellow-600 dark:text-fun-secondary font-bold uppercase tracking-widest text-sm">
                     <Gamepad2 size={18} />
                     <span>Controller</span>
                   </div>
                   {gamepadConnected && (
-                     <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded border border-yellow-500/30">
+                     <span className="text-[10px] bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded border border-yellow-200 dark:border-yellow-500/30">
                         GAMEPAD ACTIVE
                      </span>
                   )}
@@ -628,9 +617,9 @@ const App: React.FC = () => {
               disabled={connectionState !== ConnectionState.CONNECTED}
             />
 
-            <section className="bg-fun-card/40 border border-slate-700 rounded-3xl p-6">
-              <h2 className="text-lg font-extrabold text-white mb-4 flex items-center gap-2">
-                <Zap size={24} className="text-yellow-400" />
+            <section className="bg-white/60 dark:bg-fun-card/40 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-xl backdrop-blur-sm transition-all">
+              <h2 className="text-lg font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <Zap size={24} className="text-yellow-500 dark:text-yellow-400" />
                 <span>Cool Tricks</span>
               </h2>
               <SkillGrid 

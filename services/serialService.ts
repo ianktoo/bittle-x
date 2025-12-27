@@ -1,6 +1,5 @@
 
 // --- Web Serial Type Definitions ---
-// Partial definitions for TypeScript
 interface SerialPortRequestOptions {
   filters?: Array<{ usbVendorId?: number; usbProductId?: number }>;
 }
@@ -10,10 +9,13 @@ interface SerialPort {
   close(): Promise<void>;
   readable: ReadableStream<Uint8Array>;
   writable: WritableStream<Uint8Array>;
+  addEventListener(type: string, listener: EventListener): void;
+  removeEventListener(type: string, listener: EventListener): void;
 }
 
 interface Serial {
   requestPort(options?: SerialPortRequestOptions): Promise<SerialPort>;
+  addEventListener(type: string, listener: EventListener): void;
 }
 
 interface NavigatorWithSerial extends Navigator {
@@ -36,11 +38,7 @@ export class SerialService {
     }
 
     try {
-      // Petoi devices usually show up as generic USB-Serial.
-      // Passing an empty object allows the browser to show all available ports.
       this.port = await nav.serial.requestPort({});
-      
-      // Open with standard Petoi baud rate
       await this.port.open({ baudRate: 115200 });
 
       if (this.port.writable) {
@@ -63,23 +61,35 @@ export class SerialService {
       this.reader = this.port.readable.getReader();
       
       while (this.isReading) {
-        const { value, done } = await this.reader.read();
-        if (done) {
-          // Stream has been closed
-          break;
-        }
-        if (value) {
-          const str = new TextDecoder().decode(value);
-          if (this.onDataReceivedCallback) {
-            this.onDataReceivedCallback(str);
+        try {
+          const { value, done } = await this.reader.read();
+          if (done) break;
+          if (value) {
+            const str = new TextDecoder().decode(value);
+            if (this.onDataReceivedCallback) {
+              this.onDataReceivedCallback(str);
+            }
           }
+        } catch (readError: any) {
+          // If the device is lost, this will throw
+          if (String(readError).includes("lost") || String(readError).includes("disconnected")) {
+            console.warn('Serial device lost.');
+            this.handleDisconnect();
+            break;
+          }
+          throw readError;
         }
       }
     } catch (error) {
       console.error('Serial Read Error:', error);
     } finally {
       if (this.reader) {
-        this.reader.releaseLock();
+        try {
+          this.reader.releaseLock();
+        } catch (e) {
+          // Ignore if already released
+        }
+        this.reader = null;
       }
     }
   }
@@ -87,26 +97,33 @@ export class SerialService {
   async disconnect() {
     this.isReading = false;
     
-    // Close reader is tricky in Web Serial while loop is running, 
-    // usually we cancel the reader or just let the loop exit via boolean check + close
-    
     try {
+      // 1. Cancel the reader to break the readLoop
       if (this.reader) {
-        await this.reader.cancel();
-        // lock released in finally block of readLoop
+        try {
+          await this.reader.cancel();
+        } catch (e) {
+          // Ignore if reader is already closed/released
+        }
       }
       
+      // 2. Release writer lock
       if (this.writer) {
-        this.writer.releaseLock();
+        try {
+          this.writer.releaseLock();
+        } catch (e) {}
         this.writer = null;
       }
 
+      // 3. Close the port
       if (this.port) {
-        await this.port.close();
+        try {
+          await this.port.close();
+        } catch (e) {}
         this.port = null;
       }
     } catch (e) {
-      console.error("Error closing serial port", e);
+      console.error("Error during serial disconnect", e);
     }
 
     if (this.onDisconnectCallback) {
@@ -114,17 +131,22 @@ export class SerialService {
     }
   }
 
+  private handleDisconnect = () => {
+    this.isReading = false;
+    this.port = null;
+    this.writer = null;
+    this.reader = null;
+    if (this.onDisconnectCallback) {
+      this.onDisconnectCallback();
+    }
+  };
+
   async sendCommand(command: string): Promise<void> {
     if (!this.port || !this.writer) {
       throw new Error('Serial device not connected');
     }
 
-    // DEBUG: Log the raw command being sent over Serial
-    console.log(`[Serial Service] Writing: "${command}"`);
-
     const encoder = new TextEncoder();
-    // Appending newline is required for many Serial parsers (like Arduino's readStringUntil)
-    // to detect the end of the command.
     const data = encoder.encode(command + '\n');
     await this.writer.write(data);
   }

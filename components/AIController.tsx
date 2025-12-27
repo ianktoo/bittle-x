@@ -57,14 +57,14 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-sm border-2 border-white/20 rounded-3xl p-5 shadow-xl">
+    <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm border-2 border-slate-200 dark:border-white/20 rounded-3xl p-5 shadow-xl transition-colors">
       <div className="flex items-center gap-3 mb-3">
-        <div className="bg-fun-accent p-2 rounded-full">
+        <div className="bg-slate-900 dark:bg-fun-accent p-2 rounded-full">
           <MessageCircle size={24} className="text-white" />
         </div>
         <div>
-          <h3 className="font-extrabold text-xl text-white">Talk to Bittle</h3>
-          <p className="text-xs text-slate-300">Tell the robot what to do!</p>
+          <h3 className="font-extrabold text-xl text-slate-900 dark:text-white">Talk to Bittle</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-300">Tell the robot what to do!</p>
         </div>
       </div>
       
@@ -76,13 +76,13 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
             onChange={(e) => setInput(e.target.value)}
             disabled={disabled || isProcessing}
             placeholder={disabled ? "Wake up the robot first..." : "Type 'Sing a song' or 'Walk'"}
-            className="w-full bg-fun-bg border-2 border-slate-600 rounded-xl py-4 pl-4 pr-12 text-white placeholder-slate-500 focus:outline-none focus:border-fun-primary focus:ring-4 focus:ring-fun-primary/20 disabled:opacity-50 transition-all font-bold"
+            className="w-full bg-slate-50 dark:bg-fun-bg border-2 border-slate-300 dark:border-slate-600 rounded-xl py-4 pl-4 pr-12 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-fun-primary focus:ring-4 focus:ring-fun-primary/20 disabled:opacity-50 transition-all font-bold"
           />
           <button
             type="button"
             onClick={startListening}
             disabled={disabled || isProcessing}
-            className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all hover:bg-slate-700 ${
+            className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all hover:bg-slate-200 dark:hover:bg-slate-700 ${
               isListening ? 'text-red-500 animate-pulse' : 'text-slate-400'
             }`}
             title="Use Microphone"
@@ -94,20 +94,20 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
         <button
           type="submit"
           disabled={disabled || isProcessing || !input.trim()}
-          className="bg-fun-success hover:bg-green-400 text-white font-bold p-4 rounded-xl disabled:opacity-50 transition-all flex items-center justify-center border-b-4 border-green-700 active:border-b-0 active:translate-y-1 shadow-lg min-w-[60px]"
+          className="bg-green-500 dark:bg-fun-success hover:bg-green-600 dark:hover:bg-green-400 text-white font-bold p-4 rounded-xl disabled:opacity-50 transition-all flex items-center justify-center border-b-4 border-green-700 dark:border-green-700 active:border-b-0 active:translate-y-1 shadow-lg min-w-[60px]"
         >
           {isProcessing ? <Sparkles size={24} className="animate-spin" /> : <Send size={24} />}
         </button>
       </form>
       
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Try saying:</span>
+        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Try saying:</span>
         {["Do a pushup", "Sing a song", "Bark loudly", "Walk then sit"].map(txt => (
           <button 
             key={txt} 
             onClick={() => setInput(txt)}
             disabled={disabled}
-            className="text-xs bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md text-fun-primary transition-colors cursor-pointer"
+            className="text-xs bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 px-2 py-1 rounded-md text-yellow-700 dark:text-fun-primary transition-colors cursor-pointer"
           >
             "{txt}"
           </button>

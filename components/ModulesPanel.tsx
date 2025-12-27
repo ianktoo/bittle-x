@@ -31,11 +31,11 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
     }
   };
 
-  const btnClass = "flex flex-col items-center gap-2 p-3 bg-slate-800 rounded-xl border border-slate-700 hover:bg-slate-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+  const btnClass = "flex flex-col items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm";
 
   return (
-    <div className="bg-fun-card/50 border border-slate-700 rounded-3xl p-5 backdrop-blur-sm">
-      <div className="flex items-center gap-2 mb-4 text-fun-primary font-bold uppercase tracking-wider text-sm border-b border-slate-700 pb-2">
+    <div className="bg-white/60 dark:bg-fun-card/50 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 backdrop-blur-sm transition-colors">
+      <div className="flex items-center gap-2 mb-4 text-yellow-600 dark:text-fun-primary font-bold uppercase tracking-wider text-sm border-b border-slate-200 dark:border-slate-700 pb-2">
         <Settings size={18} />
         <span>Modules & Config</span>
       </div>
@@ -50,8 +50,8 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
             className={`${btnClass} hover:border-pink-500/50`}
             title="Toggle Random Autonomous Behavior (z)"
           >
-            <RefreshCcw size={24} className="text-pink-400" />
-            <span className="text-xs font-bold text-slate-300">Toggle Auto</span>
+            <RefreshCcw size={24} className="text-pink-500 dark:text-pink-400" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Toggle Auto</span>
           </button>
 
           <button 
@@ -60,19 +60,19 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
             className={btnClass}
             title="Toggle Gyro Balance"
           >
-            <Activity size={24} className="text-blue-400" />
-            <span className="text-xs font-bold text-slate-300">Gyro</span>
+            <Activity size={24} className="text-blue-500 dark:text-blue-400" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Gyro</span>
           </button>
           
           {onToggleAdvancedGaits && (
             <button 
                 onClick={onToggleAdvancedGaits}
                 disabled={disabled}
-                className={`${btnClass} ${advancedGaits ? 'border-green-500/50 bg-green-900/20' : ''}`}
+                className={`${btnClass} ${advancedGaits ? 'border-green-500/50 bg-green-100 dark:bg-green-900/20' : ''}`}
                 title="Use Bittle X specific diagonal gaits"
             >
-                <Layers size={24} className={advancedGaits ? 'text-green-400' : 'text-slate-500'} />
-                <span className="text-xs font-bold text-slate-300">
+                <Layers size={24} className={advancedGaits ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-slate-500'} />
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     {advancedGaits ? 'X Gaits: ON' : 'X Gaits: OFF'}
                 </span>
             </button>
@@ -80,27 +80,27 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
         </div>
 
         {/* AI Camera / Vision Section */}
-        <div className="bg-slate-900/50 p-4 rounded-xl space-y-3 border border-slate-700/50">
-           <div className="flex items-center justify-between text-slate-400 text-xs font-bold uppercase">
+        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl space-y-3 border border-slate-200 dark:border-slate-700/50 transition-colors">
+           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold uppercase">
              <div className="flex items-center gap-2">
-               <Eye size={14} className="text-fun-primary" /> 
+               <Eye size={14} className="text-yellow-600 dark:text-fun-primary" /> 
                <span>AI Camera (Grove)</span>
              </div>
-             <span className="text-[10px] text-slate-500 bg-black/40 px-2 py-0.5 rounded">Check LEDs</span>
+             <span className="text-[10px] text-slate-500 bg-slate-200 dark:bg-black/40 px-2 py-0.5 rounded">Check LEDs</span>
            </div>
            
            <div className="grid grid-cols-3 gap-2">
              <button 
                onClick={() => onCommand(OPEN_CAT_COMMANDS.VISION.STOP)}
                disabled={disabled}
-               className="bg-red-900/30 border border-red-900/50 text-red-200 text-xs font-bold py-2 rounded hover:bg-red-900/50 transition-colors"
+               className="bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-200 text-xs font-bold py-2 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
              >
                OFF
              </button>
              <button 
                onClick={() => onCommand(OPEN_CAT_COMMANDS.VISION.FACE)}
                disabled={disabled}
-               className="bg-blue-900/30 border border-blue-900/50 text-blue-200 text-xs font-bold py-2 rounded hover:bg-blue-900/50 transition-colors flex flex-col items-center"
+               className="bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-200 text-xs font-bold py-2 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex flex-col items-center"
                title="Look for Blue LED"
              >
                <User size={14} className="mb-1" />
@@ -109,7 +109,7 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
              <button 
                onClick={() => onCommand(OPEN_CAT_COMMANDS.VISION.COLOR)}
                disabled={disabled}
-               className="bg-green-900/30 border border-green-900/50 text-green-200 text-xs font-bold py-2 rounded hover:bg-green-900/50 transition-colors flex flex-col items-center"
+               className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-900/50 text-green-700 dark:text-green-200 text-xs font-bold py-2 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors flex flex-col items-center"
                title="Look for Green LED (Ball)"
              >
                <CircleDot size={14} className="mb-1" />
@@ -119,14 +119,14 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
         </div>
 
         {/* Head / Gripper Control */}
-        <div className="bg-slate-900/50 p-4 rounded-xl space-y-4">
-           <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase mb-2">
+        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl space-y-4 transition-colors">
+           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase mb-2">
              <Hand size={14} /> Head / Gripper / Arm
            </div>
            
            {/* Pan */}
            <div className="space-y-1">
-             <div className="flex justify-between text-xs text-slate-500">
+             <div className="flex justify-between text-xs text-slate-500 dark:text-slate-500">
                <span>Pan (Joint 0)</span>
                <span>{headPan}°</span>
              </div>
@@ -134,13 +134,13 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
                type="range" min="-120" max="120" value={headPan} 
                onChange={(e) => handleServoChange(0, parseInt(e.target.value))}
                disabled={disabled}
-               className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-fun-primary"
+               className="w-full h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-fun-primary"
              />
            </div>
 
            {/* Tilt */}
            <div className="space-y-1">
-             <div className="flex justify-between text-xs text-slate-500">
+             <div className="flex justify-between text-xs text-slate-500 dark:text-slate-500">
                <span>Tilt (Joint 1)</span>
                <span>{headTilt}°</span>
              </div>
@@ -148,14 +148,14 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
                type="range" min="-30" max="100" value={headTilt} 
                onChange={(e) => handleServoChange(1, parseInt(e.target.value))}
                disabled={disabled}
-               className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-fun-primary"
+               className="w-full h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-fun-primary"
              />
            </div>
         </div>
 
         {/* Advanced / Sensors */}
-        <div className="bg-slate-900/50 p-4 rounded-xl space-y-3">
-           <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase">
+        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl space-y-3 transition-colors">
+           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase">
              <Maximize2 size={14} /> Advanced
            </div>
            
@@ -165,7 +165,7 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
                value={customCmd}
                onChange={(e) => setCustomCmd(e.target.value)}
                placeholder="e.g. m8 30 or kbk"
-               className="flex-1 bg-black/30 border border-slate-600 rounded px-2 py-1 text-sm font-mono text-white placeholder-slate-600 focus:outline-none focus:border-fun-primary"
+               className="flex-1 bg-white dark:bg-black/30 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 text-sm font-mono text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-fun-primary"
                disabled={disabled}
              />
              <button 
