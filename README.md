@@ -1,20 +1,51 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# Bittle X Explorer
 
-This contains everything you need to run your app locally.
+A web controller for the **Petoi Bittle X** robot dog using Web Bluetooth, Web Serial, WiFi, and **Gemini AI** for natural-language and voice control.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1rhvI7jTgVlf4EF-BP0usiJKYRCO0GddY
+## About
 
-## Run Locally
+I built this while teaching at a summer camp. Beyond coding, the kids didn't have a way to play with the Bittle X, so I tinkered until they could. It's an open project and I'm excited to share it with the community.
 
-**Prerequisites:**  Node.js
+## Features
 
+- **Multi-protocol**: Connect via Bluetooth Low Energy (BLE), USB Serial, or WiFi (BiBoard/ESP32).
+- **AI integration**: Use Google Gemini to translate natural language and voice into OpenCat robot commands.
+- **Gamepad support**: Xbox/PlayStation controller mapping for movement and skills.
+- **Vision interface**: Dedicated UI for the Grove AI (Mu Vision) camera.
+- **OpenCat terminal**: Send raw OpenCat protocol commands from the in-app terminal.
+
+## Prerequisites
+
+- **Node.js** (for running the app locally)
+- **Browser**: Chrome or Edge for BLE and Serial; **Bluefy** on iOS (Safari does not support Web Bluetooth).
+- **HTTPS or localhost** required for Web Bluetooth and Web Serial.
+- **Microphone** (optional) for AI voice input.
+
+## Quick start
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+   ```bash
+   npm install
+   ```
+2. (Optional) Set `GEMINI_API_KEY` in [.env.local](.env.local) for AI voice and natural-language features. Without it, BLE/Serial/WiFi and gamepad control still work.
 3. Run the app:
-   `npm run dev`
+   ```bash
+   npm run dev
+   ```
+
+Open the app in your browser. Use the **Docs** (book) button in the app for the full in-app documentation.
+
+## Documentation
+
+- **[docs/](docs/)** — Written documentation:
+  - [User guide](docs/user-guide.md) — Getting started, connection, controls, troubleshooting.
+  - [Developer guide](docs/development.md) — Setup, architecture, build, and deploy.
+  - [OpenCat protocol reference](docs/opencat-protocol.md) — Command reference for the terminal and skills.
+
+## Links
+
+- [Petoi Doc Center](https://docs.petoi.com/)
+- [OpenCat GitHub](https://github.com/PetoiCamp/OpenCat)
+- [Bittle product page](https://www.petoi.com/pages/bittle-open-source-bionic-robot-dog)
+- [View in AI Studio](https://ai.studio/apps/drive/1rhvI7jTgVlf4EF-BP0usiJKYRCO0GddY)
