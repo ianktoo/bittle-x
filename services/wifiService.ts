@@ -7,7 +7,10 @@ export class WifiService {
     // Basic IP validation
     // Allows IP or hostname (e.g., bittle.local)
     if (!ip) throw new Error("IP Address required");
-    
+    if (this.ip) {
+      throw new Error('Already connected');
+    }
+
     this.ip = ip;
     
     // We attempt a simple fetch to check connectivity
@@ -22,8 +25,7 @@ export class WifiService {
       });
       clearTimeout(id);
     } catch (e) {
-      console.warn("Initial WiFi ping failed, but proceeding:", e);
-      // We proceed anyway because mixed content or network configs can be tricky
+      throw new Error(`Could not reach robot at ${ip}. Check IP address and WiFi.`);
     }
   }
 

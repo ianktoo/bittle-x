@@ -16,12 +16,10 @@ const ModulesPanel: React.FC<ModulesPanelProps> = ({ onCommand, disabled, advanc
 
   // Send servo command immediately
   const handleServoChange = (joint: number, angle: number) => {
-    // Joint 0 = Head Pan, Joint 1 = Head Tilt
-    if (joint === 0) setHeadPan(angle);
-    if (joint === 1) setHeadTilt(angle);
-    
-    // Throttle slightly or send direct
-    onCommand(`m${joint} ${angle}`); 
+    const clamped = Math.max(-120, Math.min(120, angle));
+    if (joint === 0) setHeadPan(clamped);
+    if (joint === 1) setHeadTilt(clamped);
+    onCommand(`m${joint} ${clamped}`);
   };
 
   const handleCustomSend = () => {

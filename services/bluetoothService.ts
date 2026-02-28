@@ -48,6 +48,10 @@ export class BluetoothService {
   private isWriting: boolean = false;
 
   async connect(): Promise<void> {
+    if (this.device && this.device.gatt?.connected) {
+      throw new Error('Already connected');
+    }
+
     if (!(navigator as any).bluetooth) {
       throw new Error('Web Bluetooth is not supported in this browser.');
     }
@@ -60,6 +64,7 @@ export class BluetoothService {
 
       if (!this.device) throw new Error('No device selected');
 
+      this.device.removeEventListener('gattserverdisconnected', this.handleDisconnect);
       this.device.addEventListener('gattserverdisconnected', this.handleDisconnect);
 
       this.server = await this.device.gatt?.connect() || null;

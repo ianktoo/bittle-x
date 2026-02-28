@@ -11,19 +11,22 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || disabled) return;
-
+    setError(null);
     setIsProcessing(true);
     try {
       const commands = await translateCommand(input);
       if (commands.length > 0) {
         onExecuteSequence(commands);
       }
+      // commands.length === 0 is valid (no matching command found)
     } catch (err) {
       console.error(err);
+      setError(err instanceof Error ? err.message : 'AI translation failed');
     } finally {
       setIsProcessing(false);
       setInput('');
@@ -46,7 +49,12 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
 
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
-    
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      setError(`Microphone error: ${event.error}`);
+    };
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
@@ -100,6 +108,9 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
         </button>
       </form>
       
+      {error && (
+        <p className="mt-2 text-sm text-red-500 font-medium">{error}</p>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Try saying:</span>
         {["Do a pushup", "Sing a song", "Bark loudly", "Walk then sit"].map(txt => (

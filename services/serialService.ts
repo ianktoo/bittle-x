@@ -32,6 +32,10 @@ export class SerialService {
   private onDisconnectCallback: (() => void) | null = null;
 
   async connect(): Promise<void> {
+    if (this.port) {
+      throw new Error('Already connected');
+    }
+
     const nav = navigator as unknown as NavigatorWithSerial;
     if (!nav.serial) {
       throw new Error('Web Serial is not supported in this browser. Try Chrome or Edge.');
