@@ -89,7 +89,7 @@ const App: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCommandTime = useRef<number>(0);
   const lastGamepadCmd = useRef<string | null>(null);
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
   const batteryIntervalRef = useRef<number | null>(null);
   const lastBatteryVoltageRef = useRef<number | null>(null);
 
