@@ -5,7 +5,7 @@ A web controller for the **Petoi Bittle X** robot dog using Web Bluetooth, Web S
 
 ## About
 
-I built this while teaching at a summer camp. Beyond coding, the kids didn't have a way to play with the Bittle X, so I tinkered until they could. It's an open project and I'm excited to share it with the community.
+I built this while teaching at a summer camp. Beyond coding, the kids didn't have a way to play with the Bittle X, so I tinkered until they could. It's an open project and I'm excited to share it with the community. Please test it out and tinker around—it's not perfect but it works most of the time.
 
 ## Features
 
@@ -21,6 +21,8 @@ I built this while teaching at a summer camp. Beyond coding, the kids didn't hav
 - **Browser**: Chrome or Edge for BLE and Serial; **Bluefy** on iOS (Safari does not support Web Bluetooth).
 - **HTTPS or localhost** required for Web Bluetooth and Web Serial.
 - **Microphone** (optional) for AI voice input.
+
+**Note:** For multiple devices or more reliable connections, **USB (Web Serial) is highly recommended** over Bluetooth LE, which can be flaky with several robots or connections.
 
 ## Quick start
 
