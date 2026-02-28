@@ -14,6 +14,41 @@ import HelpModal from './components/HelpModal';
 import ToastContainer, { ToastMessage } from './components/ToastContainer';
 import Documentation from './components/Documentation';
 
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('App error:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white p-8">
+          <div className="text-center space-y-4 max-w-md">
+            <h1 className="text-2xl font-bold text-red-400">Something went wrong</h1>
+            <p className="text-slate-400 text-sm font-mono">{this.state.error?.message}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-fun-primary text-black font-bold rounded-xl hover:bg-yellow-300"
+            >
+              Reload app
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const App: React.FC = () => {
   const [view, setView] = useState<'APP' | 'DOCS'>('APP');
   const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.DISCONNECTED);
@@ -53,10 +88,15 @@ const App: React.FC = () => {
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCommandTime = useRef<number>(0);
-  const lastGamepadCmd = useRef<string | null>(null); 
+  const lastGamepadCmd = useRef<string | null>(null);
   const requestRef = useRef<number>();
   const batteryIntervalRef = useRef<number | null>(null);
-  const lastBatteryWarningTime = useRef<number>(0);
+  const lastBatteryVoltageRef = useRef<number | null>(null);
+
+  // Refs that mirror state for use in rAF callbacks (avoids stale closures)
+  const connectionStateRef = useRef<ConnectionState>(ConnectionState.DISCONNECTED);
+  const connectionTypeRef = useRef<'BLUETOOTH' | 'USB' | 'WIFI' | null>(null);
+  const useAdvancedGaitsRef = useRef(false);
 
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'info') => {
     const id = Math.random().toString(36).substring(7);
@@ -101,10 +141,10 @@ const App: React.FC = () => {
       const volts = parseFloat(volStr);
       if (!isNaN(volts)) {
         setBatteryVoltage(volts);
-        const now = Date.now();
-        if (volts < 6.8 && (now - lastBatteryWarningTime.current > 30000)) {
-             addToast(`Low Battery: ${volts}V! Servos may disable.`, 'error');
-             lastBatteryWarningTime.current = now;
+        const prevVoltage = lastBatteryVoltageRef.current;
+        lastBatteryVoltageRef.current = volts;
+        if (volts < 6.8 && (prevVoltage === null || prevVoltage >= 6.8)) {
+          addToast(`Low Battery: ${volts}V! Servos may disable.`, 'error');
         }
       }
     }
@@ -155,6 +195,17 @@ const App: React.FC = () => {
       }
     }
   }, [connectionState, connectionType, addLog, addToast]);
+
+  // Keep state-mirror refs in sync
+  useEffect(() => { connectionStateRef.current = connectionState; }, [connectionState]);
+  useEffect(() => { connectionTypeRef.current = connectionType; }, [connectionType]);
+  useEffect(() => { useAdvancedGaitsRef.current = useAdvancedGaits; }, [useAdvancedGaits]);
+
+  // Stable callback refs so rAF loop never captures a stale closure
+  const sendCommandRef = useRef(sendCommand);
+  useEffect(() => { sendCommandRef.current = sendCommand; }, [sendCommand]);
+  const handleEmergencyStopRef = useRef(handleEmergencyStop);
+  useEffect(() => { handleEmergencyStopRef.current = handleEmergencyStop; }, [handleEmergencyStop]);
 
   const wait = (ms: number, signal: AbortSignal) => {
     return new Promise<void>((resolve, reject) => {
@@ -228,14 +279,14 @@ const App: React.FC = () => {
     const axisX = gp.axes[0]; 
     const axisY = gp.axes[1]; 
     
-    const isUp = axisY < -DEADZONE || gp.buttons[12].pressed;
-    const isDown = axisY > DEADZONE || gp.buttons[13].pressed;
+    const isUp = axisY < -DEADZONE || (gp.buttons[12]?.pressed ?? false);
+    const isDown = axisY > DEADZONE || (gp.buttons[13]?.pressed ?? false);
     const isLeft = axisX < -DEADZONE || gp.buttons[14].pressed;
     const isRight = axisX > DEADZONE || gp.buttons[15].pressed;
 
     // Directional Mapping using official gaits
-    if (isUp && isLeft) cmd = useAdvancedGaits ? 'kwkL' : 'kwkF';
-    else if (isUp && isRight) cmd = useAdvancedGaits ? 'kwkR' : 'kwkF';
+    if (isUp && isLeft) cmd = useAdvancedGaitsRef.current ? 'kwkL' : 'kwkF';
+    else if (isUp && isRight) cmd = useAdvancedGaitsRef.current ? 'kwkR' : 'kwkF';
     else if (isDown && isLeft) cmd = 'kbkL';
     else if (isDown && isRight) cmd = 'kbkR';
     else if (isUp) cmd = OPEN_CAT_COMMANDS.WALK_F;
@@ -253,7 +304,7 @@ const App: React.FC = () => {
         
         if (gp.buttons[8].pressed || gp.buttons[9].pressed) {
              if (now - lastCommandTime.current > 1000) {
-                 handleEmergencyStop();
+                 handleEmergencyStopRef.current();
                  lastCommandTime.current = now;
              }
              return;
@@ -266,7 +317,7 @@ const App: React.FC = () => {
 
     if (cmd) {
         if (cmd !== lastGamepadCmd.current) {
-            sendCommand(cmd);
+            sendCommandRef.current(cmd);
             lastGamepadCmd.current = cmd;
         }
     } else {
@@ -275,14 +326,14 @@ const App: React.FC = () => {
         ];
 
         if (lastGamepadCmd.current && movementCommands.includes(lastGamepadCmd.current)) {
-            sendCommand(OPEN_CAT_COMMANDS.BALANCE);
+            sendCommandRef.current(OPEN_CAT_COMMANDS.BALANCE);
             addLog('INFO', 'Gamepad: Auto-Stop');
             lastGamepadCmd.current = null;
         } else {
             lastGamepadCmd.current = null;
         }
     }
-  }, [gamepadConnected, sendCommand, addLog, addToast, handleEmergencyStop, activeCmd, view, useAdvancedGaits]);
+  }, [gamepadConnected, addLog, addToast, activeCmd, view]);
 
   useEffect(() => {
     const tick = () => {
@@ -304,7 +355,7 @@ const App: React.FC = () => {
   }, [sendCommand]);
 
   const handleConnectBluetooth = async () => {
-    if (!(navigator as any).bluetooth) {
+    if (!('bluetooth' in navigator)) {
       addToast("Web Bluetooth not supported", 'error');
       return;
     }
@@ -339,7 +390,7 @@ const App: React.FC = () => {
   };
 
   const handleConnectUSB = async () => {
-    if (!(navigator as any).serial) {
+    if (!('serial' in navigator)) {
       addToast("Web Serial not supported", 'error');
       return;
     }
@@ -372,6 +423,11 @@ const App: React.FC = () => {
   const handleConnectWifi = async () => {
     if (!wifiIp) {
       addToast("Enter IP address", 'error');
+      return;
+    }
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(wifiIp)) {
+      addToast("Invalid IP address format", 'error');
       return;
     }
     setConnectionState(ConnectionState.CONNECTING);
@@ -418,11 +474,11 @@ const App: React.FC = () => {
     };
 
     if ('serial' in navigator) {
-      (navigator as any).serial.addEventListener('disconnect', handleSerialDisconnectEvent);
+      (navigator as unknown as { serial: { addEventListener: (t: string, l: EventListener) => void; removeEventListener: (t: string, l: EventListener) => void } }).serial.addEventListener('disconnect', handleSerialDisconnectEvent);
     }
     return () => {
       if ('serial' in navigator) {
-        (navigator as any).serial.removeEventListener('disconnect', handleSerialDisconnectEvent);
+        (navigator as unknown as { serial: { addEventListener: (t: string, l: EventListener) => void; removeEventListener: (t: string, l: EventListener) => void } }).serial.removeEventListener('disconnect', handleSerialDisconnectEvent);
       }
     };
   }, [connectionType]);
@@ -432,6 +488,7 @@ const App: React.FC = () => {
   }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen p-4 sm:p-6 pb-20 font-sans selection:bg-fun-primary selection:text-white transition-colors duration-300">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
@@ -635,6 +692,7 @@ const App: React.FC = () => {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 };
 
