@@ -30,13 +30,14 @@ I built this while teaching at a summer camp. Beyond coding, the kids didn't hav
    ```bash
    npm install
    ```
-2. (Optional) Set `GEMINI_API_KEY` in [.env.local](.env.local) for AI voice and natural-language features. Without it, BLE/Serial/WiFi and gamepad control still work.
-3. Run the app:
-   ```bash
-   npm run dev
-   ```
+2. (Optional) For AI voice and natural-language features, copy [.env.example](.env.example) to `.env.local` and set `GEMINI_API_KEY`. Without it, BLE/Serial/WiFi and gamepad control still work.
+3. Run the app (choose one):
+   - **With AI (recommended):** `npx vercel dev` — runs the app and the serverless API so the key stays on the server (requires [Vercel CLI](https://vercel.com/docs/cli)).
+   - **App only:** `npm run dev` — AI won’t work (no API); other features work.
 
 Open the app in your browser. Use the **Docs** (book) button in the app for the full in-app documentation.
+
+**Deploy on Vercel:** The app uses a serverless function at `/api/translate` so the Gemini key is never in the browser. Set `GEMINI_API_KEY` in your [Vercel project Environment Variables](https://vercel.com/docs/projects/environment-variables).
 
 ## Documentation
 

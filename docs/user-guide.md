@@ -82,7 +82,7 @@ Additional mappings (e.g. Y for Pee, LB/RB for Pushup/Stretch) are available; se
 - **Microphone:** Click the mic and speak (e.g. “Do a pushup then bark twice”). The AI converts your words into OpenCat commands.
 - **Text:** Type natural language in the AI controller; the app sends the resulting command sequence to the robot.
 
-**Requirement:** Set `GEMINI_API_KEY` in `.env.local` when running locally so the AI features work.
+**Requirement:** The app calls a backend API that uses the Gemini key (the key never goes to the browser). For local use, set `GEMINI_API_KEY` in `.env.local` and run `npx vercel dev`; for production on Vercel, set it in the project’s Environment Variables.
 
 ## Terminal
 

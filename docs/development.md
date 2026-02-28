@@ -18,7 +18,8 @@ This document is for developers who want to run, build, or modify Bittle X Explo
 | `services/bluetoothService.ts` | Web Bluetooth: Nordic UART service, connect, send, receive, disconnect. |
 | `services/serialService.ts` | Web Serial: port picker, 115200 baud, read/write, disconnect. |
 | `services/wifiService.ts` | WiFi: connect by IP/hostname, send commands via `http://[IP]/action?cmd=...`. |
-| `services/geminiService.ts` | Gemini API: system prompt with OpenCat skills, natural language → JSON command array (with optional `wait:ms`). |
+| `services/geminiService.ts` | Calls `/api/translate` with user input; API uses Gemini and returns a command array (with optional `wait:ms`). |
+| `api/translate.ts` | Vercel serverless function: reads `GEMINI_API_KEY`, calls Gemini, returns `{ commands }`. |
 | `vite.config.ts` | Vite config (e.g. React plugin). |
 | `vercel.json` | SPA rewrite: all routes → `index.html` (for Vercel deploy). |
 
@@ -32,16 +33,17 @@ From [package.json](../package.json):
 
 ## Environment
 
-- **`GEMINI_API_KEY`** in `.env.local`: Required for AI voice and natural-language features. The app reads it at runtime. Without it, BLE/Serial/WiFi and gamepad control still work.
-
-Create `.env.local` in the project root (and add it to `.gitignore` if not already).
+- **`GEMINI_API_KEY`**: Used only by the serverless API (`/api/translate`), never in the browser.
+  - **Local:** Put it in `.env.local` and run `npx vercel dev` so the API runs with the key.
+  - **Production (Vercel):** Set it in the project’s [Environment Variables](https://vercel.com/docs/projects/environment-variables).
+- Without it, AI features are disabled; BLE/Serial/WiFi and gamepad control still work.
 
 ## Services
 
 - **bluetoothService:** Connects to a BLE device using the Nordic UART service/characteristics, queues outgoing commands, and notifies the app of incoming data (e.g. battery voltage). Used when the user chooses “Connect (BLE)”.
 - **serialService:** Uses the Web Serial API to let the user pick a USB serial port, opens it at 115200 baud, and provides send/receive and disconnect. Used for “Connect (USB)”.
 - **wifiService:** Stores the robot IP/hostname and sends OpenCat commands via GET requests to `http://[IP]/action?cmd=[COMMAND]`. Used when the user enters an IP and connects via WiFi.
-- **geminiService:** Calls the Gemini API with a system prompt that maps natural language to OpenCat command names. Returns a JSON object with a `commands` array (and optional `wait:ms` tokens). The app then sends those commands in sequence to the robot.
+- **geminiService:** Sends user input to the backend `/api/translate` (no API key in the client). The serverless function calls Gemini and returns a `commands` array (with optional `wait:ms`). The app sends those commands in sequence to the robot.
 
 ## Build and deploy
 
