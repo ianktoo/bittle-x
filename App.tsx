@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen, AlertTriangle, Sun, Moon, Settings } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { bluetoothService } from './services/bluetoothService';
 import { serialService } from './services/serialService';
 import { wifiService } from './services/wifiService';
@@ -449,6 +450,7 @@ const App: React.FC = () => {
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <Analytics />
       
       {connectionState === ConnectionState.CONNECTED && (
         <button
