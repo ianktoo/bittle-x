@@ -183,7 +183,7 @@ export function toGeminiTool() {
           type: 'ARRAY',
           items: {
             type: 'STRING',
-            enum: [...VALID_ROBOT_COMMANDS, ...VALID_ROBOT_COMMANDS.map((cmd) => `wait:${cmd === 'wait:' ? '\\d+' : ''}`).filter((v) => v !== 'wait:')],
+            enum: VALID_ROBOT_COMMANDS,
           },
           description: `List of robot commands to execute. Valid values: ${VALID_ROBOT_COMMANDS.join(', ')}. Use "wait:MILLISECONDS" (e.g., "wait:1500") to pause between commands.`,
         },
