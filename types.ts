@@ -98,6 +98,6 @@ export const OPEN_CAT_COMMANDS = {
 };
 
 export interface AIChatMessage {
-  role: 'user' | 'model';
+  role: 'user' | 'assistant';
   text: string;
 }

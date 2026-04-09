@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Mic, Send, MessageCircle, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { translateCommand, ApiKeyNotConfiguredError } from '../services/geminiService';
-import { hasApiKey } from '../services/keyStorageService';
+import {
+  getActiveProvider,
+  getActiveProviderType,
+  getProviderConfig,
+  ProviderNotConfiguredError,
+} from '../services/llmProviderService';
 
 interface AIControllerProps {
   onExecuteSequence: (cmds: string[]) => void;
@@ -14,12 +18,24 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [keyConfigured, setKeyConfigured] = useState(false);
+  const [providerInfo, setProviderInfo] = useState<{ displayName: string; model: string }>({
+    displayName: 'Gemini',
+    model: 'gemini-2.0-flash',
+  });
 
-  // Check API key status on mount and when component becomes visible
+  // Check provider credentials on mount and when component becomes visible
   useEffect(() => {
     const checkKeyStatus = async () => {
-      const has = await hasApiKey();
-      setKeyConfigured(has);
+      const provider = getActiveProvider();
+      const hasCredentials = await provider.hasCredentials();
+      setKeyConfigured(hasCredentials);
+
+      // Update provider display info
+      const config = getProviderConfig(getActiveProviderType());
+      setProviderInfo({
+        displayName: provider.displayName,
+        model: config.modelId,
+      });
     };
 
     checkKeyStatus();
@@ -37,13 +53,19 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
     try {
       // Get robot model from localStorage
       const robotModel = (localStorage.getItem('bittle.robotModel') as 'Bittle' | 'Nybble Q') || 'Bittle';
-      const commands = await translateCommand(input, robotModel);
-      if (commands.length > 0) {
-        onExecuteSequence(commands);
+
+      // Get active provider and its config
+      const provider = getActiveProvider();
+      const config = getProviderConfig(getActiveProviderType());
+
+      // Translate command using active provider
+      const result = await provider.translateCommand(input, robotModel, config);
+      if (result.commands.length > 0) {
+        onExecuteSequence(result.commands);
       }
     } catch (err) {
-      if (err instanceof ApiKeyNotConfiguredError) {
-        // User needs to configure API key
+      if (err instanceof ProviderNotConfiguredError) {
+        // User needs to configure API key for active provider
         onNeedApiKey();
       } else {
         console.error(err);
@@ -101,9 +123,9 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
         {/* API Key Status Badge */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
           {keyConfigured ? (
-            <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+            <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-lg">
               <CheckCircle2 size={14} />
-              <span>AI Ready</span>
+              <span>{providerInfo.displayName} Ready</span>
             </div>
           ) : (
             <button
