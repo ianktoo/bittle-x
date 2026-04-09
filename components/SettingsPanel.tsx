@@ -113,7 +113,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-8 text-slate-700 dark:text-slate-300">
+        <div className="p-6 space-y-8 text-slate-900 dark:text-slate-300">
           {/* Gemini API Key Section */}
           <section>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
@@ -122,7 +122,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
 
             {keyStatus === 'unset' ? (
               <div className="space-y-3">
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                <p className="text-sm text-slate-800 dark:text-slate-400 mb-3">
                   Enter your Google Gemini API key to enable AI command translation.
                   <a
                     href="https://ai.google.dev/gemini-api"
@@ -200,7 +200,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
 
-                <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+                <p className="text-xs text-slate-700 dark:text-slate-400 italic">
                   🔒 Encrypted locally with AES-256. Never sent to this app's server.
                 </p>
               </div>
@@ -236,7 +236,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 italic">
+            <p className="text-xs text-slate-700 dark:text-slate-400 mt-3 italic">
               The AI will adapt its commands based on the selected robot model.
             </p>
           </section>
