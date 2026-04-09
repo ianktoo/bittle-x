@@ -603,7 +603,7 @@ const App: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-5 flex flex-col gap-6">
-             <div className="bg-white/60 dark:bg-fun-card/40 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center shadow-xl backdrop-blur-sm transition-all">
+             <div className="bg-white/90 dark:bg-fun-card/40 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 flex flex-col items-center shadow-xl backdrop-blur-sm transition-all">
                 <div className="flex items-center justify-between w-full mb-4 px-2">
                   <div className="flex items-center gap-2 text-yellow-600 dark:text-fun-secondary font-bold uppercase tracking-widest text-sm">
                     <Gamepad2 size={18} />
@@ -642,7 +642,7 @@ const App: React.FC = () => {
               onNeedApiKey={() => setIsSettingsOpen(true)}
             />
 
-            <section className="bg-white/60 dark:bg-fun-card/40 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-xl backdrop-blur-sm transition-all">
+            <section className="bg-white/90 dark:bg-fun-card/40 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-xl backdrop-blur-sm transition-all">
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <Zap size={24} className="text-yellow-500 dark:text-yellow-400" />
                 <span>Cool Tricks</span>

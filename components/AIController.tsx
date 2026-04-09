@@ -81,15 +81,21 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
   };
 
   return (
-    <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm border-2 border-slate-200 dark:border-white/20 rounded-3xl p-5 shadow-xl transition-colors">
+    <div className={`rounded-3xl p-5 shadow-xl transition-colors border-2 ${
+      keyConfigured
+        ? 'bg-white/90 dark:bg-white/10 backdrop-blur-sm border-slate-200 dark:border-white/20'
+        : 'bg-amber-50/90 dark:bg-amber-900/20 backdrop-blur-sm border-amber-300 dark:border-amber-600'
+    }`}>
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 flex-1">
-          <div className="bg-slate-900 dark:bg-fun-accent p-2 rounded-full">
+          <div className={`p-2 rounded-full ${keyConfigured ? 'bg-slate-900 dark:bg-fun-accent' : 'bg-amber-700 dark:bg-amber-600'}`}>
             <MessageCircle size={24} className="text-white" />
           </div>
           <div>
             <h3 className="font-extrabold text-xl text-slate-900 dark:text-white">Talk to Bittle</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-300">Tell the robot what to do!</p>
+            <p className={`text-xs ${keyConfigured ? 'text-slate-500 dark:text-slate-300' : 'text-amber-700 dark:text-amber-300 font-semibold'}`}>
+              {keyConfigured ? 'Tell the robot what to do!' : 'Configure API key to enable AI commands'}
+            </p>
           </div>
         </div>
         {/* API Key Status Badge */}
@@ -102,24 +108,45 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
           ) : (
             <button
               onClick={onNeedApiKey}
-              className="flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+              className="flex items-center gap-1.5 bg-amber-200 dark:bg-amber-700 text-amber-900 dark:text-amber-100 hover:bg-amber-300 dark:hover:bg-amber-600 transition-colors px-2 py-1 rounded-lg font-bold"
             >
               <AlertCircle size={14} />
-              <span>Configure Key →</span>
+              <span>Setup Now</span>
             </button>
           )}
         </div>
       </div>
-      
+
+      {!keyConfigured && (
+        <div className="mb-3 p-4 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-600 rounded-xl">
+          <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-2">
+            🔑 API Key Required
+          </p>
+          <p className="text-xs text-amber-800 dark:text-amber-300 mb-3">
+            Set up your Gemini API key in Settings to enable AI command translation.
+          </p>
+          <button
+            onClick={onNeedApiKey}
+            className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600 text-white font-bold rounded-lg text-sm transition-colors"
+          >
+            Open Settings
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="flex gap-2">
         <div className="relative flex-1 group">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            disabled={disabled || isProcessing}
-            placeholder={disabled ? "Wake up the robot first..." : "Type 'Sing a song' or 'Walk'"}
-            className="w-full bg-slate-50 dark:bg-fun-bg border-2 border-slate-300 dark:border-slate-600 rounded-xl py-4 pl-4 pr-12 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-fun-primary focus:ring-4 focus:ring-fun-primary/20 disabled:opacity-50 transition-all font-bold"
+            disabled={disabled || isProcessing || !keyConfigured}
+            placeholder={!keyConfigured ? "Configure API key first..." : disabled ? "Wake up the robot first..." : "Type 'Sing a song' or 'Walk'"}
+            className={`w-full rounded-xl py-4 pl-4 pr-12 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-4 transition-all font-bold border-2 ${
+              !keyConfigured
+                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-600 disabled:opacity-70'
+                : 'bg-slate-50 dark:bg-fun-bg border-slate-300 dark:border-slate-600 focus:border-fun-primary focus:ring-fun-primary/20 disabled:opacity-50'
+            }`}
           />
           <button
             type="button"
@@ -150,7 +177,7 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
             key={txt} 
             onClick={() => setInput(txt)}
             disabled={disabled}
-            className="text-xs bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 px-2 py-1 rounded-md text-yellow-700 dark:text-fun-primary transition-colors cursor-pointer"
+            className="text-xs bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 px-2 py-1 rounded-md text-yellow-700 dark:text-fun-primary transition-colors cursor-pointer"
           >
             "{txt}"
           </button>
