@@ -7,6 +7,12 @@
 
 import type { ProviderType } from './keyStorageService';
 
+// Import provider implementations (triggers auto-registration)
+import './providers/geminiProvider';
+import './providers/openaiProvider';
+import './providers/anthropicProvider';
+import './providers/ollamaProvider';
+
 /**
  * Configuration for each provider (non-sensitive, stored in localStorage).
  */
@@ -97,49 +103,14 @@ const AVAILABLE_MODELS: Record<ProviderType, string[]> = {
 };
 
 /**
- * Stub implementations (replaced by real providers in Phase 2)
- */
-class StubProvider implements LLMProvider {
-  constructor(public id: ProviderType) {}
-
-  readonly displayName = `${this.id.charAt(0).toUpperCase()}${this.id.slice(1)}`;
-  readonly defaultModel = DEFAULT_MODELS[this.id];
-  readonly availableModels = AVAILABLE_MODELS[this.id];
-
-  async hasCredentials(): Promise<boolean> {
-    throw new Error(`Provider ${this.id} not yet implemented`);
-  }
-
-  async saveCredentials(): Promise<void> {
-    throw new Error(`Provider ${this.id} not yet implemented`);
-  }
-
-  async clearCredentials(): Promise<void> {
-    throw new Error(`Provider ${this.id} not yet implemented`);
-  }
-
-  async validateCredentials(): Promise<string | null> {
-    throw new Error(`Provider ${this.id} not yet implemented`);
-  }
-
-  async translateCommand(): Promise<LLMTranslateResult> {
-    throw new Error(`Provider ${this.id} not yet implemented`);
-  }
-}
-
-/**
  * Provider registry (lazily instantiated, singleton per provider type)
+ * Providers auto-register via _registerProvider() when imported
  */
 const providerRegistry: Map<ProviderType, LLMProvider> = new Map();
 
 function initializeProviderRegistry() {
-  if (providerRegistry.size === 0) {
-    // Stub implementations for now; replaced by real providers in Phase 2
-    providerRegistry.set('gemini', new StubProvider('gemini'));
-    providerRegistry.set('openai', new StubProvider('openai'));
-    providerRegistry.set('anthropic', new StubProvider('anthropic'));
-    providerRegistry.set('ollama', new StubProvider('ollama'));
-  }
+  // Providers are auto-registered on import (see imports at top of file)
+  // This function ensures the imports have run before accessing the registry
 }
 
 /**
