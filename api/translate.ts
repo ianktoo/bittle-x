@@ -1,3 +1,17 @@
+/**
+ * DEPRECATED: This server-side endpoint has been superseded by client-side Gemini API calls.
+ *
+ * The app now supports user-provided API keys encrypted locally in the browser,
+ * eliminating the need for a server-side proxy. This endpoint is kept for backward compatibility
+ * and as an optional fallback for self-hosted deployments that prefer server-side key management.
+ *
+ * For new usage, users should configure their API key in the Settings panel,
+ * which will be encrypted locally and used directly in the browser via services/geminiService.ts.
+ *
+ * If you wish to continue using this endpoint instead, you can revert to commit history
+ * or keep this file and update services/geminiService.ts to use the /api/translate proxy.
+ */
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `

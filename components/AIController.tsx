@@ -1,16 +1,33 @@
-import React, { useState } from 'react';
-import { Mic, Send, MessageCircle, Sparkles } from 'lucide-react';
-import { translateCommand } from '../services/geminiService';
+import React, { useEffect, useState } from 'react';
+import { Mic, Send, MessageCircle, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { translateCommand, ApiKeyNotConfiguredError } from '../services/geminiService';
+import { hasApiKey } from '../services/keyStorageService';
 
 interface AIControllerProps {
   onExecuteSequence: (cmds: string[]) => void;
   disabled: boolean;
+  onNeedApiKey: () => void;
 }
 
-const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled }) => {
+const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled, onNeedApiKey }) => {
   const [input, setInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [keyConfigured, setKeyConfigured] = useState(false);
+
+  // Check API key status on mount and when component becomes visible
+  useEffect(() => {
+    const checkKeyStatus = async () => {
+      const has = await hasApiKey();
+      setKeyConfigured(has);
+    };
+
+    checkKeyStatus();
+    // Re-check when the window regains focus (in case user configured key in another tab)
+    const handleFocus = () => checkKeyStatus();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -18,12 +35,19 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
 
     setIsProcessing(true);
     try {
-      const commands = await translateCommand(input);
+      // Get robot model from localStorage
+      const robotModel = (localStorage.getItem('bittle.robotModel') as 'Bittle' | 'Nybble Q') || 'Bittle';
+      const commands = await translateCommand(input, robotModel);
       if (commands.length > 0) {
         onExecuteSequence(commands);
       }
     } catch (err) {
-      console.error(err);
+      if (err instanceof ApiKeyNotConfiguredError) {
+        // User needs to configure API key
+        onNeedApiKey();
+      } else {
+        console.error(err);
+      }
     } finally {
       setIsProcessing(false);
       setInput('');
@@ -58,13 +82,32 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
 
   return (
     <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm border-2 border-slate-200 dark:border-white/20 rounded-3xl p-5 shadow-xl transition-colors">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="bg-slate-900 dark:bg-fun-accent p-2 rounded-full">
-          <MessageCircle size={24} className="text-white" />
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="bg-slate-900 dark:bg-fun-accent p-2 rounded-full">
+            <MessageCircle size={24} className="text-white" />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-xl text-slate-900 dark:text-white">Talk to Bittle</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-300">Tell the robot what to do!</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-extrabold text-xl text-slate-900 dark:text-white">Talk to Bittle</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-300">Tell the robot what to do!</p>
+        {/* API Key Status Badge */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
+          {keyConfigured ? (
+            <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+              <CheckCircle2 size={14} />
+              <span>AI Ready</span>
+            </div>
+          ) : (
+            <button
+              onClick={onNeedApiKey}
+              className="flex items-center gap-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+            >
+              <AlertCircle size={14} />
+              <span>Configure Key →</span>
+            </button>
+          )}
         </div>
       </div>
       

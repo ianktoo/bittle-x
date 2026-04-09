@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen, AlertTriangle, Sun, Moon } from 'lucide-react';
+import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen, AlertTriangle, Sun, Moon, Settings } from 'lucide-react';
 import { bluetoothService } from './services/bluetoothService';
 import { serialService } from './services/serialService';
 import { wifiService } from './services/wifiService';
@@ -11,6 +11,7 @@ import AIController from './components/AIController';
 import SensorsPanel from './components/SensorsPanel';
 import ModulesPanel from './components/ModulesPanel';
 import HelpModal from './components/HelpModal';
+import SettingsPanel from './components/SettingsPanel';
 import ToastContainer, { ToastMessage } from './components/ToastContainer';
 import Documentation from './components/Documentation';
 
@@ -21,6 +22,7 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [activeCmd, setActiveCmd] = useState<string | null>(null);
   const [batteryVoltage, setBatteryVoltage] = useState<number | null>(null);
@@ -51,9 +53,12 @@ const App: React.FC = () => {
   const [showWifiInput, setShowWifiInput] = useState(false);
   const [wifiIp, setWifiIp] = useState('');
 
+  // Rate limiting to prevent overwhelming the robot's microcontroller
+  const COMMAND_THROTTLE_MS = 150;
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCommandTime = useRef<number>(0);
-  const lastGamepadCmd = useRef<string | null>(null); 
+  const lastGamepadCmd = useRef<string | null>(null);
   const requestRef = useRef<number>();
   const batteryIntervalRef = useRef<number | null>(null);
   const lastBatteryWarningTime = useRef<number>(0);
@@ -116,6 +121,14 @@ const App: React.FC = () => {
       return;
     }
 
+    // Rate limiting: ensure minimum time between commands to prevent hardware reboot
+    const now = Date.now();
+    const timeSinceLastCommand = now - lastCommandTime.current;
+    if (timeSinceLastCommand < COMMAND_THROTTLE_MS) {
+      await new Promise(resolve => setTimeout(resolve, COMMAND_THROTTLE_MS - timeSinceLastCommand));
+    }
+    lastCommandTime.current = Date.now();
+
     try {
       if (connectionType === 'BLUETOOTH') {
         await bluetoothService.sendCommand(cmd);
@@ -124,7 +137,7 @@ const App: React.FC = () => {
       } else if (connectionType === 'WIFI') {
         await wifiService.sendCommand(cmd);
       }
-      
+
       if (cmd !== 'v') {
          addLog('TX', cmd);
       }
@@ -435,6 +448,7 @@ const App: React.FC = () => {
     <div className="min-h-screen p-4 sm:p-6 pb-20 font-sans selection:bg-fun-primary selection:text-white transition-colors duration-300">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
       
       {connectionState === ConnectionState.CONNECTED && (
         <button
@@ -559,15 +573,23 @@ const App: React.FC = () => {
               <BookOpen size={22} />
             </button>
 
-            <button 
+            <button
               onClick={() => setIsHelpOpen(true)}
               className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full border border-slate-300 dark:border-slate-600 transition-all"
               title="Quick Help"
             >
               <HelpCircle size={22} />
             </button>
-            
-            <button 
+
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full border border-slate-300 dark:border-slate-600 transition-all"
+              title="Settings"
+            >
+              <Settings size={22} />
+            </button>
+
+            <button
               onClick={toggleTheme}
               className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full border border-slate-300 dark:border-slate-600 transition-all"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -612,9 +634,10 @@ const App: React.FC = () => {
           </div>
 
           <div className="lg:col-span-7 flex flex-col gap-6">
-            <AIController 
+            <AIController
               onExecuteSequence={executeSequence}
               disabled={connectionState !== ConnectionState.CONNECTED}
+              onNeedApiKey={() => setIsSettingsOpen(true)}
             />
 
             <section className="bg-white/60 dark:bg-fun-card/40 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-xl backdrop-blur-sm transition-all">
