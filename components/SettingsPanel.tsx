@@ -219,7 +219,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             {icon} {displayName} {isOllama ? '(Local)' : ''}
           </h3>
           {provider !== activeProvider && (
-            <span className="text-xs bg-slate-300/50 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-400">
+            <span className="text-xs bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-400">
               Inactive
             </span>
           )}
@@ -260,7 +260,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                 value={state.inputValue}
                 onChange={(e) => updateProviderState(provider, { inputValue: e.target.value })}
                 placeholder={isOllama ? 'http://localhost:11434' : `${provider === 'gemini' ? 'AIza' : provider === 'openai' ? 'sk-' : 'sk-ant-'}...`}
-                className="w-full px-4 py-3 pr-10 bg-white/20 dark:bg-slate-800 border border-white/30 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                className="w-full px-4 py-3 pr-10 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                 disabled={state.validationStatus === 'validating'}
               />
               <button
@@ -281,7 +281,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                 <select
                   value={state.selectedModel}
                   onChange={(e) => handleModelChange(provider, e.target.value)}
-                  className="w-full px-4 py-2 bg-white/20 dark:bg-slate-800 border border-white/30 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                  className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                 >
                   {providerImpl.availableModels.map((model) => (
                     <option key={model} value={model}>
@@ -300,7 +300,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   value={state.selectedModel}
                   onChange={(e) => handleModelChange(provider, e.target.value)}
                   placeholder="e.g., llama3.2, mistral, neural-chat"
-                  className="w-full px-4 py-2 bg-white/20 dark:bg-slate-800 border border-white/30 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                  className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                 />
               </div>
             )}
@@ -359,7 +359,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                 <select
                   value={state.selectedModel}
                   onChange={(e) => handleModelChange(provider, e.target.value)}
-                  className="w-full px-4 py-2 bg-white/20 dark:bg-slate-800 border border-white/30 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                  className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                 >
                   {providerImpl.availableModels.map((model) => (
                     <option key={model} value={model}>
@@ -378,7 +378,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   value={state.selectedModel}
                   onChange={(e) => handleModelChange(provider, e.target.value)}
                   placeholder="e.g., llama3.2"
-                  className="w-full px-4 py-2 bg-white/20 dark:bg-slate-800 border border-white/30 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                  className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                 />
               </div>
             )}
@@ -386,7 +386,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => handleReplaceKey(provider)}
-                className="px-4 py-2 bg-slate-300/50 dark:bg-slate-800 hover:bg-slate-400/50 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-semibold rounded-lg transition-colors"
               >
                 {isOllama ? 'Change URL' : 'Replace'}
               </button>
@@ -413,9 +413,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white/10 dark:bg-slate-900/90 border border-white/20 dark:border-slate-700 w-full max-w-3xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 w-full max-w-3xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10 dark:border-slate-800 sticky top-0 z-10 bg-white/5 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 bg-white dark:bg-slate-900">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h2>
           <button
             onClick={onClose}
@@ -431,7 +431,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
           <section>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">🤖 AI Provider</h3>
 
-            <div className="flex gap-2 mb-6 border-b border-white/10 dark:border-slate-800 overflow-x-auto">
+            <div className="flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
               {PROVIDERS.map((provider) => (
                 <button
                   key={provider}
@@ -458,7 +458,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
           </section>
 
           {/* Robot Model Section */}
-          <section className="border-t border-white/10 dark:border-slate-800 pt-6">
+          <section className="border-t border-slate-200 dark:border-slate-800 pt-6">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">🤖 Robot Model</h3>
 
             <div className="grid grid-cols-2 gap-3">
@@ -467,7 +467,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                 className={`px-4 py-3 rounded-xl font-semibold transition-all ${
                   robotModel === 'Bittle'
                     ? 'bg-blue-600 dark:bg-blue-700 text-white shadow-lg'
-                    : 'bg-slate-300/50 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-400/50 dark:hover:bg-slate-700'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
                 🐕 Bittle X
@@ -477,7 +477,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                 className={`px-4 py-3 rounded-xl font-semibold transition-all ${
                   robotModel === 'Nybble Q'
                     ? 'bg-blue-600 dark:bg-blue-700 text-white shadow-lg'
-                    : 'bg-slate-300/50 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-400/50 dark:hover:bg-slate-700'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
                 🐱 Nybble Q
