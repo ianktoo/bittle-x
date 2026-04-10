@@ -6,12 +6,10 @@
  */
 
 import type { ProviderType } from './keyStorageService';
-
-// Import provider implementations (triggers auto-registration)
-import './providers/geminiProvider';
-import './providers/openaiProvider';
-import './providers/anthropicProvider';
-import './providers/ollamaProvider';
+import { GeminiProvider } from './providers/geminiProvider';
+import { OpenAIProvider } from './providers/openaiProvider';
+import { AnthropicProvider } from './providers/anthropicProvider';
+import { OllamaProvider } from './providers/ollamaProvider';
 
 /**
  * Configuration for each provider (non-sensitive, stored in localStorage).
@@ -103,22 +101,20 @@ const AVAILABLE_MODELS: Record<ProviderType, string[]> = {
 };
 
 /**
- * Provider registry (lazily instantiated, singleton per provider type)
- * Providers auto-register via _registerProvider() when imported
+ * Provider registry — instantiated once at module load time.
  */
-const providerRegistry: Map<ProviderType, LLMProvider> = new Map();
-
-function initializeProviderRegistry() {
-  // Providers are auto-registered on import (see imports at top of file)
-  // This function ensures the imports have run before accessing the registry
-}
+const providerRegistry: Map<ProviderType, LLMProvider> = new Map([
+  ['gemini', new GeminiProvider()],
+  ['openai', new OpenAIProvider()],
+  ['anthropic', new AnthropicProvider()],
+  ['ollama', new OllamaProvider()],
+]);
 
 /**
  * Get a provider instance by type.
  * @param type Provider type ('gemini', 'openai', 'anthropic', 'ollama')
  */
 export function getProvider(type: ProviderType): LLMProvider {
-  initializeProviderRegistry();
   const provider = providerRegistry.get(type);
   if (!provider) {
     throw new Error(`Unknown provider: ${type}`);
@@ -190,10 +186,3 @@ export function setProviderConfig(
   localStorage.setItem(key, JSON.stringify(merged));
 }
 
-/**
- * Register a provider implementation (called by provider modules in Phase 2).
- * @internal Used by provider implementations to register themselves
- */
-export function _registerProvider(provider: LLMProvider): void {
-  providerRegistry.set(provider.id, provider);
-}

@@ -98,7 +98,3 @@ export class OpenAIProvider implements LLMProvider {
     }
   }
 }
-
-// Auto-register this provider
-import { _registerProvider } from '../llmProviderService';
-_registerProvider(new OpenAIProvider());
