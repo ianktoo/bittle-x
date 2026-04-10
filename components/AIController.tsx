@@ -18,6 +18,7 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
   const [isProcessing, setIsProcessing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [keyConfigured, setKeyConfigured] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [providerInfo, setProviderInfo] = useState<{ displayName: string; model: string }>({
     displayName: 'Gemini',
     model: 'gemini-2.0-flash',
@@ -45,11 +46,34 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
     return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
+  const friendlyError = (err: unknown, model: string): string => {
+    const msg = err instanceof Error ? err.message : String(err);
+    const lower = msg.toLowerCase();
+    if (
+      lower.includes('not found') ||
+      lower.includes('does not exist') ||
+      lower.includes('invalid model') ||
+      lower.includes('model_id field is invalid') ||
+      lower.includes('no such model') ||
+      lower.includes('unknown model')
+    ) {
+      return `The model "${model}" wasn't recognized. Open Settings and pick a supported model, or check the spelling.`;
+    }
+    if (lower.includes('quota') || lower.includes('rate limit') || lower.includes('429')) {
+      return `You've hit a rate limit. Wait a moment and try again.`;
+    }
+    if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('invalid api key')) {
+      return `Your API key looks invalid. Check it in Settings.`;
+    }
+    return `Something went wrong: ${msg}`;
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || disabled) return;
 
     setIsProcessing(true);
+    setErrorMessage(null);
     try {
       // Get robot model from localStorage
       const robotModel = (localStorage.getItem('bittle.robotModel') as 'Bittle' | 'Nybble Q') || 'Bittle';
@@ -65,9 +89,10 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
       }
     } catch (err) {
       if (err instanceof ProviderNotConfiguredError) {
-        // User needs to configure API key for active provider
         onNeedApiKey();
       } else {
+        const config = getProviderConfig(getActiveProviderType());
+        setErrorMessage(friendlyError(err, config.modelId));
         console.error(err);
       }
     } finally {
@@ -192,6 +217,13 @@ const AIController: React.FC<AIControllerProps> = ({ onExecuteSequence, disabled
         </button>
       </form>
       
+      {errorMessage && (
+        <div className="mt-3 flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
+          <AlertCircle size={16} className="text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
+          <p className="text-sm text-red-700 dark:text-red-300">{errorMessage}</p>
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Try saying:</span>
         {["Do a pushup", "Sing a song", "Bark loudly", "Walk then sit"].map(txt => (

@@ -273,37 +273,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Model Selector */}
-            {providerImpl.availableModels.length > 0 ? (
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Model
-                </label>
-                <select
-                  value={state.selectedModel}
-                  onChange={(e) => handleModelChange(provider, e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                >
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                Model
+              </label>
+              <input
+                type="text"
+                list={`models-${provider}-unset`}
+                value={state.selectedModel}
+                onChange={(e) => handleModelChange(provider, e.target.value)}
+                placeholder={isOllama ? 'e.g., llama3.2, mistral' : 'Type or select a model'}
+                className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+              />
+              {providerImpl.availableModels.length > 0 && (
+                <datalist id={`models-${provider}-unset`}>
                   {providerImpl.availableModels.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
+                    <option key={model} value={model} />
                   ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Model (free-form)
-                </label>
-                <input
-                  type="text"
-                  value={state.selectedModel}
-                  onChange={(e) => handleModelChange(provider, e.target.value)}
-                  placeholder="e.g., llama3.2, mistral, neural-chat"
-                  className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                />
-              </div>
-            )}
+                </datalist>
+              )}
+            </div>
 
             {state.validationError && state.validationStatus === 'error' && (
               <div className="flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -351,37 +340,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Model Selector for Configured Provider */}
-            {providerImpl.availableModels.length > 0 ? (
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Model
-                </label>
-                <select
-                  value={state.selectedModel}
-                  onChange={(e) => handleModelChange(provider, e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                >
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                Model
+              </label>
+              <input
+                type="text"
+                list={`models-${provider}-set`}
+                value={state.selectedModel}
+                onChange={(e) => handleModelChange(provider, e.target.value)}
+                placeholder={isOllama ? 'e.g., llama3.2, mistral' : 'Type or select a model'}
+                className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+              />
+              {providerImpl.availableModels.length > 0 && (
+                <datalist id={`models-${provider}-set`}>
                   {providerImpl.availableModels.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
+                    <option key={model} value={model} />
                   ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Model
-                </label>
-                <input
-                  type="text"
-                  value={state.selectedModel}
-                  onChange={(e) => handleModelChange(provider, e.target.value)}
-                  placeholder="e.g., llama3.2"
-                  className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                />
-              </div>
-            )}
+                </datalist>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <button
