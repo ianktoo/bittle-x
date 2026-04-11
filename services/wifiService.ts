@@ -1,33 +1,36 @@
 
+import { logger } from './logger';
+
+const NS = 'WIFI';
+
 export class WifiService {
   private ip: string | null = null;
   private onDisconnectCallback: (() => void) | null = null;
 
   async connect(ip: string): Promise<void> {
-    // Basic IP validation
-    // Allows IP or hostname (e.g., bittle.local)
     if (!ip) throw new Error("IP Address required");
-    
+
     this.ip = ip;
-    
-    // We attempt a simple fetch to check connectivity
-    // Using no-cors because the ESP32 might not return proper CORS headers
-    // and we just want to ensure the network path exists.
+    logger.info(NS, `Connecting to ${ip}`);
+
+    // Attempt a simple fetch to check connectivity
     try {
+      logger.debug(NS, 'Pinging device to verify reachability');
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), 2000);
-      await fetch(`http://${this.ip}`, { 
+      await fetch(`http://${this.ip}`, {
         mode: 'no-cors',
-        signal: controller.signal 
+        signal: controller.signal
       });
       clearTimeout(id);
-    } catch (e) {
-      console.warn("Initial WiFi ping failed, but proceeding:", e);
-      // We proceed anyway because mixed content or network configs can be tricky
+      logger.info(NS, 'Initial ping succeeded — device reachable');
+    } catch (e: any) {
+      logger.warn(NS, `Initial ping failed — proceeding anyway (mixed-content or CORS may be blocking): ${e.message ?? e}`);
     }
   }
 
   async disconnect() {
+    logger.info(NS, `Disconnecting from ${this.ip}`);
     this.ip = null;
     if (this.onDisconnectCallback) {
       this.onDisconnectCallback();
@@ -37,20 +40,16 @@ export class WifiService {
   async sendCommand(command: string): Promise<void> {
     if (!this.ip) throw new Error("WiFi device not connected");
 
-    // Construct URL for standard Bittle/ESP WebServer
-    // Typical pattern: http://<IP>/action?cmd=<COMMAND>
     const url = `http://${this.ip}/action?cmd=${encodeURIComponent(command)}`;
-    
-    console.log(`[WiFi] Fetching: ${url}`);
+    logger.debug(NS, `Sending command: ${command}`);
 
     try {
-      // Fire and forget-ish
       await fetch(url, {
         method: 'GET',
-        mode: 'no-cors', // Important for local IPs
+        mode: 'no-cors',
       });
-    } catch (error) {
-      console.error('WiFi Send Error:', error);
+    } catch (error: any) {
+      logger.error(NS, `Send failed for command "${command}": ${error.message ?? error}`);
       throw error;
     }
   }

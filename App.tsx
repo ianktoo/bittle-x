@@ -3,6 +3,7 @@ import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCirc
 import { bluetoothService } from './services/bluetoothService';
 import { serialService } from './services/serialService';
 import { wifiService } from './services/wifiService';
+import { logger, LoggerEntry } from './services/logger';
 import { ConnectionState, LogEntry, OPEN_CAT_COMMANDS } from './types';
 import ControlPad from './components/ControlPad';
 import SkillGrid from './components/SkillGrid';
@@ -84,6 +85,19 @@ const App: React.FC = () => {
     }]);
   }, []);
 
+  // Keep a stable ref so the logger callback always calls the current addLog
+  const addLogRef = useRef(addLog);
+  useEffect(() => { addLogRef.current = addLog; }, [addLog]);
+
+  // Wire logger service → terminal log entries (runs once on mount)
+  useEffect(() => {
+    const handler = (entry: LoggerEntry) => {
+      addLogRef.current(entry.level as LogEntry['type'], `[${entry.namespace}] ${entry.message}`);
+    };
+    logger.setOnLog(handler);
+    return () => logger.removeOnLog(handler);
+  }, []);
+
   const handleDataReceived = useCallback((data: string) => {
     const trimmed = data.trim();
     if (!trimmed) return;
@@ -141,9 +155,9 @@ const App: React.FC = () => {
       if (cmd !== 'v') {
          addLog('TX', cmd);
       }
-    } catch (error) {
-      console.error('[CMD] Error sending:', error);
-      addLog('ERROR', 'Send failed');
+    } catch (error: any) {
+      logger.error('CMD', `Send failed for "${cmd}": ${error?.message ?? error}`);
+      addLog('ERROR', `Send failed: ${error?.message ?? 'unknown error'}`);
       addToast('Failed to send command', 'error');
     }
   }, [connectionState, connectionType, addLog, addToast]);

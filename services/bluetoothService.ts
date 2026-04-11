@@ -1,5 +1,5 @@
 
-import { LogEntry } from '../types';
+import { logger } from './logger';
 
 // --- Web Bluetooth Type Definitions ---
 interface BluetoothRemoteGATTCharacteristic extends EventTarget {
@@ -26,6 +26,7 @@ interface BluetoothDevice extends EventTarget {
 }
 // --------------------------------------
 
+const NS = 'BT';
 const SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 const TX_CHARACTERISTIC_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
 const RX_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
@@ -46,6 +47,7 @@ export class BluetoothService {
 
   private queue: QueueItem[] = [];
   private isWriting: boolean = false;
+  private wasManualDisconnect: boolean = false;
 
   async connect(): Promise<void> {
     if (!(navigator as any).bluetooth) {
@@ -53,6 +55,7 @@ export class BluetoothService {
     }
 
     try {
+      logger.debug(NS, 'Requesting device from browser');
       this.device = await (navigator as any).bluetooth.requestDevice({
         acceptAllDevices: true,
         optionalServices: [SERVICE_UUID],
@@ -60,30 +63,43 @@ export class BluetoothService {
 
       if (!this.device) throw new Error('No device selected');
 
+      logger.info(NS, `Device selected: ${this.device.name ?? this.device.id}`);
+
       this.device.addEventListener('gattserverdisconnected', this.handleDisconnect);
 
+      logger.debug(NS, 'Connecting to GATT server');
       this.server = await this.device.gatt?.connect() || null;
       if (!this.server) throw new Error('Could not connect to GATT server');
 
+      logger.debug(NS, 'Getting primary service (Nordic UART)');
       const service = await this.server.getPrimaryService(SERVICE_UUID);
 
+      logger.debug(NS, 'Getting TX characteristic');
       this.txCharacteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+
+      logger.debug(NS, 'Getting RX characteristic');
       this.rxCharacteristic = await service.getCharacteristic(RX_CHARACTERISTIC_UUID);
 
+      logger.debug(NS, 'Starting RX notifications');
       await this.rxCharacteristic.startNotifications();
       this.rxCharacteristic.addEventListener('characteristicvaluechanged', this.handleCharacteristicValueChanged);
+
+      logger.info(NS, 'Connected successfully');
 
     } catch (error: any) {
       // Handle "User cancelled" gracefully
       if (error.name === 'NotFoundError' || String(error).includes("cancelled")) {
+        logger.info(NS, 'Connection cancelled by user');
         throw new Error("Connection cancelled by user");
       }
-      console.error('Bluetooth Connection Error:', error);
+      logger.error(NS, `Connection failed: ${error.message ?? error}`, { name: error.name, message: error.message });
       throw error;
     }
   }
 
   async disconnect() {
+    this.wasManualDisconnect = true;
+    logger.info(NS, 'Disconnecting (user requested)');
     if (this.device && this.device.gatt?.connected) {
       this.device.gatt.disconnect();
     }
@@ -97,6 +113,8 @@ export class BluetoothService {
 
     const encoder = new TextEncoder();
     const data = encoder.encode(command + '\n');
+
+    logger.debug(NS, `Queuing command: ${command} (queue depth: ${this.queue.length})`);
 
     return new Promise((resolve, reject) => {
       this.queue.push({ data, resolve, reject });
@@ -112,15 +130,19 @@ export class BluetoothService {
       while (this.queue.length > 0) {
         const item = this.queue[0];
         if (!this.txCharacteristic) {
-           item.reject(new Error("Device disconnected"));
-           this.queue.shift();
-           continue;
+          logger.warn(NS, 'Characteristic lost mid-queue, dropping item');
+          item.reject(new Error("Device disconnected"));
+          this.queue.shift();
+          continue;
         }
 
         try {
+          logger.debug(NS, 'Writing command to characteristic');
           await this.txCharacteristic.writeValue(item.data);
+          logger.debug(NS, 'Write succeeded');
           item.resolve();
-        } catch (error) {
+        } catch (error: any) {
+          logger.error(NS, `Write failed: ${error.message ?? error}`);
           item.reject(error);
         } finally {
           this.queue.shift();
@@ -139,17 +161,31 @@ export class BluetoothService {
     if (!value) return;
     const decoder = new TextDecoder();
     const str = decoder.decode(value);
+    logger.debug(NS, `RX: ${str.length} bytes`);
     if (this.onDataReceivedCallback) {
       this.onDataReceivedCallback(str);
     }
   };
 
   private handleDisconnect = () => {
+    const droppedCount = this.queue.length;
+
+    if (this.wasManualDisconnect) {
+      logger.info(NS, 'Disconnected cleanly (user requested)');
+    } else {
+      logger.warn(NS, 'Unexpected disconnection — device may be out of range or powered off');
+    }
+    this.wasManualDisconnect = false;
+
+    if (droppedCount > 0) {
+      logger.warn(NS, `Dropped ${droppedCount} queued command${droppedCount === 1 ? '' : 's'} due to disconnect`);
+    }
+
     this.device = null;
     this.server = null;
     this.txCharacteristic = null;
     this.rxCharacteristic = null;
-    
+
     this.queue.forEach(item => item.reject(new Error("Device disconnected")));
     this.queue = [];
     this.isWriting = false;

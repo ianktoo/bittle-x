@@ -8,7 +8,7 @@ export enum ConnectionState {
 export interface LogEntry {
   id: string;
   timestamp: number;
-  type: 'TX' | 'RX' | 'INFO' | 'ERROR' | 'AI';
+  type: 'TX' | 'RX' | 'INFO' | 'ERROR' | 'AI' | 'DEBUG' | 'WARN';
   message: string;
 }
 

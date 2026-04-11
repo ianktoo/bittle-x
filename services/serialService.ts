@@ -1,4 +1,6 @@
 
+import { logger } from './logger';
+
 // --- Web Serial Type Definitions ---
 interface SerialPortRequestOptions {
   filters?: Array<{ usbVendorId?: number; usbProductId?: number }>;
@@ -23,6 +25,8 @@ interface NavigatorWithSerial extends Navigator {
 }
 // -----------------------------------
 
+const NS = 'SERIAL';
+
 export class SerialService {
   private port: SerialPort | null = null;
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
@@ -38,7 +42,10 @@ export class SerialService {
     }
 
     try {
+      logger.debug(NS, 'Requesting serial port from browser');
       this.port = await nav.serial.requestPort({});
+
+      logger.debug(NS, 'Opening port at 115200 baud');
       await this.port.open({ baudRate: 115200 });
 
       if (this.port.writable) {
@@ -48,8 +55,10 @@ export class SerialService {
       this.isReading = true;
       this.readLoop();
 
-    } catch (error) {
-      console.error('Serial Connection Error:', error);
+      logger.info(NS, 'Connected successfully');
+
+    } catch (error: any) {
+      logger.error(NS, `Connection failed: ${error.message ?? error}`);
       throw error;
     }
   }
@@ -59,7 +68,7 @@ export class SerialService {
 
     try {
       this.reader = this.port.readable.getReader();
-      
+
       while (this.isReading) {
         try {
           const { value, done } = await this.reader.read();
@@ -71,17 +80,17 @@ export class SerialService {
             }
           }
         } catch (readError: any) {
-          // If the device is lost, this will throw
           if (String(readError).includes("lost") || String(readError).includes("disconnected")) {
-            console.warn('Serial device lost.');
+            logger.warn(NS, 'Device lost during read — cable unplugged?');
             this.handleDisconnect();
             break;
           }
+          logger.error(NS, `Read error: ${readError.message ?? readError}`);
           throw readError;
         }
       }
-    } catch (error) {
-      console.error('Serial Read Error:', error);
+    } catch (error: any) {
+      logger.error(NS, `Read loop error: ${error.message ?? error}`);
     } finally {
       if (this.reader) {
         try {
@@ -95,10 +104,10 @@ export class SerialService {
   }
 
   async disconnect() {
+    logger.info(NS, 'Disconnecting (user requested)');
     this.isReading = false;
-    
+
     try {
-      // 1. Cancel the reader to break the readLoop
       if (this.reader) {
         try {
           await this.reader.cancel();
@@ -106,8 +115,7 @@ export class SerialService {
           // Ignore if reader is already closed/released
         }
       }
-      
-      // 2. Release writer lock
+
       if (this.writer) {
         try {
           this.writer.releaseLock();
@@ -115,17 +123,17 @@ export class SerialService {
         this.writer = null;
       }
 
-      // 3. Close the port
       if (this.port) {
         try {
           await this.port.close();
         } catch (e) {}
         this.port = null;
       }
-    } catch (e) {
-      console.error("Error during serial disconnect", e);
+    } catch (e: any) {
+      logger.error(NS, `Error during disconnect: ${e.message ?? e}`);
     }
 
+    logger.info(NS, 'Disconnected cleanly');
     if (this.onDisconnectCallback) {
       this.onDisconnectCallback();
     }
@@ -148,6 +156,7 @@ export class SerialService {
 
     const encoder = new TextEncoder();
     const data = encoder.encode(command + '\n');
+    logger.debug(NS, `Sending command: ${command}`);
     await this.writer.write(data);
   }
 
