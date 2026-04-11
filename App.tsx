@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen, AlertTriangle, Sun, Moon, Settings } from 'lucide-react';
+import { Bluetooth, WifiOff, Battery, Gamepad2, Rocket, Usb, Zap, Wifi, HelpCircle, Octagon, BookOpen, AlertTriangle, Sun, Moon, Settings, Sparkles } from 'lucide-react';
 import { bluetoothService } from './services/bluetoothService';
 import { serialService } from './services/serialService';
 import { wifiService } from './services/wifiService';
@@ -8,7 +8,7 @@ import { ConnectionState, LogEntry, OPEN_CAT_COMMANDS } from './types';
 import ControlPad from './components/ControlPad';
 import SkillGrid from './components/SkillGrid';
 import Terminal from './components/Terminal';
-import AIController from './components/AIController';
+import AIModal from './components/AIModal';
 import SensorsPanel from './components/SensorsPanel';
 import ModulesPanel from './components/ModulesPanel';
 import HelpModal from './components/HelpModal';
@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAIOpen, setIsAIOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [activeCmd, setActiveCmd] = useState<string | null>(null);
   const [batteryVoltage, setBatteryVoltage] = useState<number | null>(null);
@@ -463,6 +464,13 @@ const App: React.FC = () => {
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <AIModal
+        isOpen={isAIOpen}
+        onClose={() => setIsAIOpen(false)}
+        onExecuteSequence={executeSequence}
+        disabled={connectionState !== ConnectionState.CONNECTED}
+        onNeedApiKey={() => { setIsAIOpen(false); setIsSettingsOpen(true); }}
+      />
 
       {connectionState === ConnectionState.CONNECTED && (
         <button
@@ -579,7 +587,16 @@ const App: React.FC = () => {
               </div>
             )}
             
-            <button 
+            <button
+              onClick={() => setIsAIOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-xl hover:from-violet-500 hover:to-indigo-500 transition-all shadow-md text-sm"
+              title="Open AI Mode"
+            >
+              <Sparkles size={18} />
+              <span className="hidden sm:inline">AI Mode</span>
+            </button>
+
+            <button
               onClick={() => setView('DOCS')}
               className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full border border-slate-300 dark:border-slate-600 transition-all"
               title="Open Documentation"
@@ -648,12 +665,6 @@ const App: React.FC = () => {
           </div>
 
           <div className="lg:col-span-7 flex flex-col gap-6">
-            <AIController
-              onExecuteSequence={executeSequence}
-              disabled={connectionState !== ConnectionState.CONNECTED}
-              onNeedApiKey={() => setIsSettingsOpen(true)}
-            />
-
             <section className="bg-white/90 dark:bg-fun-card/40 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-xl backdrop-blur-sm transition-all">
               <h2 className="text-lg font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <Zap size={24} className="text-yellow-500 dark:text-yellow-400" />
